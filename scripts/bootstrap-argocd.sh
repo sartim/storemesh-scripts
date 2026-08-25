@@ -20,7 +20,11 @@ if [ ! -f "${argocd_dir}/project.yaml" ] || \
 fi
 
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
-kubectl apply --namespace argocd --filename "${argocd_manifest}"
+# Argo CD's generated CRDs can exceed kubectl's client-side apply annotation
+# limit; server-side apply avoids storing the full manifest in metadata.
+kubectl apply --server-side --force-conflicts \
+  --namespace argocd \
+  --filename "${argocd_manifest}"
 kubectl wait \
   --namespace argocd \
   --for=condition=Available \
