@@ -41,6 +41,22 @@ if ! kubectl get secret \
   exit 1
 fi
 
-kubectl apply --filename "${argocd_dir}/storemesh-user-service-application.yaml"
+application_manifests=(
+  istio-base-application.yaml
+  istiod-application.yaml
+  istio-ingressgateway-application.yaml
+  prometheus-stack-application.yaml
+  tempo-application.yaml
+  storemesh-user-service-application.yaml
+  storemesh-product-service-application.yaml
+  storemesh-inventory-service-application.yaml
+  storemesh-order-service-application.yaml
+  storemesh-bff-application.yaml
+  storemesh-frontend-application.yaml
+)
 
-echo "Argo CD is installed and the StoreMesh user-service application was submitted."
+for manifest in "${application_manifests[@]}"; do
+  kubectl apply --filename "${argocd_dir}/${manifest}"
+done
+
+echo "Argo CD is installed and the local StoreMesh applications were submitted."
