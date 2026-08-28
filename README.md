@@ -30,11 +30,15 @@ kubectl create secret generic storemesh-user-service-secrets \
 Use a secret manager or External Secrets in a shared environment instead of
 putting credential values in shell history.
 
-## Install Argo CD and submit the application
+## Install Argo CD and submit the local applications
 
 ```sh
 ./scripts/bootstrap-argocd.sh
 ```
+
+The script installs Argo CD and submits one local Application for each current
+StoreMesh service, plus Istio, Prometheus, and Tempo. Staging Applications are
+not submitted by this local bootstrap.
 
 ## Run the local UI and dashboards
 
