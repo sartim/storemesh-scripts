@@ -35,3 +35,16 @@ putting credential values in shell history.
 ```sh
 ./scripts/bootstrap-argocd.sh
 ```
+
+## Run the local UI and dashboards
+
+After the local cluster and applications are ready, keep the forwarding helper
+running in a terminal:
+
+```sh
+./scripts/port-forward-local.sh
+```
+
+Set `STOREMESH_KUBE_CONTEXT` when using a different Kubernetes context. The
+helper keeps the frontend, BFF, Argo CD, Grafana, Prometheus, Alertmanager, and
+Tempo forwards together and stops all child forwards when interrupted.
