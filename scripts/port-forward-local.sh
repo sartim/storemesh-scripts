@@ -8,6 +8,9 @@ pids=()
 
 cleanup() {
   trap - EXIT INT TERM
+  if ((${#pids[@]} == 0)); then
+    return
+  fi
   for pid in "${pids[@]}"; do
     kill "${pid}" 2>/dev/null || true
   done
