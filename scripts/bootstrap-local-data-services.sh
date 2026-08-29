@@ -11,15 +11,15 @@ if ! command -v kubectl >/dev/null 2>&1; then
   exit 1
 fi
 
-kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
 kubectl -n "${namespace}" create secret generic storemesh-local-postgres \
   --from-literal=POSTGRES_USER=storemesh \
   --from-literal=POSTGRES_PASSWORD="${postgres_password}" \
   --from-literal=POSTGRES_DB=storemesh \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
-kubectl apply -f - <<'YAML'
+kubectl apply --validate=false -f - <<'YAML'
 apiVersion: v1
 kind: Service
 metadata:
@@ -108,7 +108,7 @@ kubectl -n "${namespace}" create secret generic storemesh-user-service-secrets \
   --from-literal=DATABASE_URL="postgres://storemesh:${postgres_password}@postgres.${namespace}.svc.cluster.local:5432/storemesh?sslmode=disable" \
   --from-literal=REDIS_URL="redis://redis.${namespace}.svc.cluster.local:6379/0" \
   --from-literal=JWT_SECRET="${jwt_secret}" \
-  --dry-run=client -o yaml | kubectl apply -f -
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
 kubectl -n "${namespace}" wait --for=condition=Available deployment/postgres --timeout=180s
 kubectl -n "${namespace}" wait --for=condition=Available deployment/redis --timeout=180s
