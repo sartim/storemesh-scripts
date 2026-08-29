@@ -3,6 +3,10 @@
 set -euo pipefail
 
 context="${STOREMESH_KUBE_CONTEXT:-kind-storemesh}"
+server_args=()
+if [[ -n "${STOREMESH_KUBE_SERVER:-}" ]]; then
+  server_args=(--server "${STOREMESH_KUBE_SERVER}")
+fi
 log_dir="${TMPDIR:-/tmp}/storemesh-port-forwards"
 pids=()
 
@@ -25,7 +29,7 @@ if ! command -v kubectl >/dev/null 2>&1; then
   exit 1
 fi
 
-kubectl --context "${context}" cluster-info --request-timeout=30s >/dev/null
+kubectl --context "${context}" "${server_args[@]}" cluster-info --request-timeout=30s >/dev/null
 mkdir -p "${log_dir}"
 
 forward() {
@@ -34,8 +38,9 @@ forward() {
   local service="$3"
   local ports="$4"
 
-  kubectl --context "${context}" get service "${service}" --namespace "${namespace}" --request-timeout=30s >/dev/null
+  kubectl --context "${context}" "${server_args[@]}" get service "${service}" --namespace "${namespace}" --request-timeout=30s >/dev/null
   kubectl --context "${context}" port-forward \
+    "${server_args[@]}" \
     --namespace "${namespace}" \
     "service/${service}" "${ports}" \
     >"${log_dir}/${name}.log" 2>&1 &
