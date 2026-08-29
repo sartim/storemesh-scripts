@@ -25,7 +25,7 @@ if ! command -v kubectl >/dev/null 2>&1; then
   exit 1
 fi
 
-kubectl --context "${context}" cluster-info >/dev/null
+kubectl --context "${context}" cluster-info --request-timeout=30s >/dev/null
 mkdir -p "${log_dir}"
 
 forward() {
@@ -34,7 +34,7 @@ forward() {
   local service="$3"
   local ports="$4"
 
-  kubectl --context "${context}" get service "${service}" --namespace "${namespace}" >/dev/null
+  kubectl --context "${context}" get service "${service}" --namespace "${namespace}" --request-timeout=30s >/dev/null
   kubectl --context "${context}" port-forward \
     --namespace "${namespace}" \
     "service/${service}" "${ports}" \
