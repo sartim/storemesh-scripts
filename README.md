@@ -52,3 +52,17 @@ running in a terminal:
 Set `STOREMESH_KUBE_CONTEXT` when using a different Kubernetes context. The
 helper keeps the frontend, BFF, Argo CD, Grafana, Prometheus, Alertmanager, and
 Tempo forwards together and stops all child forwards when interrupted.
+
+## Seed the demo store
+
+After obtaining a customer token and an admin token, import the curated demo
+catalog and 24 sample orders:
+
+```sh
+STOREMESH_CUSTOMER_TOKEN=... \
+STOREMESH_ADMIN_TOKEN=... \
+bash ./scripts/seed-demo-store.sh
+```
+
+The script skips duplicate product SKUs and uses idempotency keys for orders.
+It writes through the BFF, so configured Product and Order persistence is used.
