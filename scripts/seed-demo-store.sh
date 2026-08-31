@@ -43,8 +43,14 @@ for entry in "${products[@]}"; do
 done
 
 products_json="$(curl -fsS "${bff_url}/api/v1/products?page_size=100" -H "Authorization: Bearer ${customer_token}")"
-mapfile -t product_ids < <(jq -r '.products[]?.id // empty' <<<"${products_json}")
-customer_id="$(jq -r '.sub // empty' <<<"$(printf '%s' "${customer_token}" | cut -d. -f2 | base64 -D 2>/dev/null || true)")"
+product_ids=()
+while IFS= read -r product_id; do
+  [ -n "${product_id}" ] && product_ids+=("${product_id}")
+done <<EOF
+$(jq -r '.products[]?.id // empty' <<<"${products_json}")
+EOF
+token_payload="$(printf '%s' "${customer_token}" | cut -d. -f2 | tr '_-' '/+' | awk '{ print $0 "===" }' | base64 -D 2>/dev/null || true)"
+customer_id="$(jq -r '.sub // empty' <<<"${token_payload}")"
 
 if [[ "${#product_ids[@]}" -eq 0 || -z "${customer_id}" ]]; then
   echo "Catalog or customer token is unavailable; no orders were created." >&2
