@@ -33,6 +33,11 @@ kubectl wait \
 
 kubectl apply --filename "${argocd_dir}/project.yaml"
 
+# ECK installs many CRDs and namespaced operator resources. Create its target
+# namespace before the CRD-heavy sync so Argo does not race CreateNamespace with
+# the first batch of operator resources on a small local Kind cluster.
+kubectl create namespace elastic-system --dry-run=client -o yaml | kubectl apply -f -
+
 if ! kubectl get secret \
   --namespace storemesh-user-service \
   storemesh-user-service-secrets >/dev/null 2>&1; then
