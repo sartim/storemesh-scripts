@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -euo pipefail
+set -eo pipefail
 
 context="${STOREMESH_KUBE_CONTEXT:-kind-storemesh}"
 server_args=()
