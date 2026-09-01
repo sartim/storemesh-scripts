@@ -69,6 +69,22 @@ bash ./scripts/seed-demo-store.sh
 The script skips duplicate product SKUs and uses idempotency keys for orders.
 It writes through the BFF, so configured Product and Order persistence is used.
 
+## Optional ngrok access
+
+Use ngrok when a physical mobile device or a remote demo needs to reach the
+local BFF. Start the normal local forwards first, then expose only the BFF:
+
+```sh
+ngrok http 8080
+curl https://YOUR-NGROK-DOMAIN.ngrok-free.app/healthz
+```
+
+Configure the resulting HTTPS origin in the mobile client build settings. A
+reserved ngrok domain is preferable for repeatable development. Add ngrok
+authentication or rely on the application's login before sharing the URL,
+and never tunnel PostgreSQL, Redis, gRPC, Prometheus, Grafana, Kibana, or Argo
+CD directly.
+
 For repeatable telemetry and log volume after seeding, run the load harness. It
 uses the local demo accounts by default and never prints bearer tokens:
 
