@@ -85,6 +85,19 @@ authentication or rely on the application's login before sharing the URL,
 and never tunnel PostgreSQL, Redis, gRPC, Prometheus, Grafana, Kibana, or Argo
 CD directly.
 
+## Istio gRPC validation
+
+After the opt-in Istio applications synchronize, validate sidecar enrollment
+before promoting mTLS from `PERMISSIVE` to `STRICT`:
+
+```sh
+./scripts/validate-istio-grpc.sh
+```
+
+The read-only check requires the enrolled namespaces to exist, each workload
+to include an `istio-proxy` sidecar, and every container to be ready. It does
+not change cluster state.
+
 For repeatable telemetry and log volume after seeding, run the load harness. It
 uses the local demo accounts by default and never prints bearer tokens:
 
