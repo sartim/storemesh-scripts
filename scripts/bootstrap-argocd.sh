@@ -50,6 +50,7 @@ application_manifests=(
   istio-base-application.yaml
   istiod-application.yaml
   istio-ingressgateway-application.yaml
+  istio-mesh-policy-application.yaml
   kiali-application.yaml
   eck-operator-application.yaml
   eck-logging-application.yaml
