@@ -5,12 +5,27 @@ set -euo pipefail
 bff_url="${STOREMESH_BFF_URL:-http://localhost:8080}"
 admin_token="${STOREMESH_ADMIN_TOKEN:-}"
 customer_token="${STOREMESH_CUSTOMER_TOKEN:-}"
+customer_email="${STOREMESH_CUSTOMER_EMAIL:-demo@storemesh.local}"
+customer_password="${STOREMESH_CUSTOMER_PASSWORD:-StoreMesh-demo-2026!}"
+admin_email="${STOREMESH_ADMIN_EMAIL:-admin@storemesh.local}"
+admin_password="${STOREMESH_ADMIN_PASSWORD:-StoreMesh-admin-2026!}"
 
-if [[ -z "${admin_token}" || -z "${customer_token}" ]]; then
-  echo "Set STOREMESH_ADMIN_TOKEN and STOREMESH_CUSTOMER_TOKEN first." >&2
-  exit 1
-fi
 command -v jq >/dev/null || { echo "jq is required." >&2; exit 1; }
+
+login() {
+  local email="$1" password="$2"
+  curl -fsS "${bff_url}/api/v1/auth/login" \
+    -H 'Content-Type: application/json' \
+    -d "$(jq -nc --arg email "${email}" --arg password "${password}" '{email:$email,password:$password}')" \
+    | jq -er '.accessToken // .access_token'
+}
+
+if [[ -z "${admin_token}" ]]; then
+  admin_token="$(login "${admin_email}" "${admin_password}")"
+fi
+if [[ -z "${customer_token}" ]]; then
+  customer_token="$(login "${customer_email}" "${customer_password}")"
+fi
 
 products=(
   'Halo Desk Lamp|SM-LAMP-001|8900|Warm ambient light for focused evenings.'
@@ -29,6 +44,22 @@ products=(
   'Sunday Coffee Beans|SM-COFF-014|1600|Bright, balanced beans for a better first cup.'
   'Studio Backpack|SM-BACK-015|11900|A calm, capable home for your daily essentials.'
   'Paperweight Stone|SM-STON-016|1400|A small grounded object for a busy desk.'
+  'Ember Table Clock|SM-CLOK-017|6400|A quiet visual anchor for focused mornings.'
+  'Vale Linen Apron|SM-APRN-018|5200|A sturdy layer for cooking, making, and hosting.'
+  'Hearth Candle|SM-CNDL-019|3800|Warm cedar and amber for a softer room.'
+  'North Ceramic Vase|SM-VASE-020|4600|A simple vessel for a single branch or bloom.'
+  'Drift Reading Light|SM-LITE-021|7600|A portable pool of light for late chapters.'
+  'Woven Storage Basket|SM-BASK-022|6900|Open storage with a calm, natural texture.'
+  'Cedar Laptop Stand|SM-STND-023|8200|Raise your screen and make space to breathe.'
+  'Rain Travel Umbrella|SM-UMBR-024|4100|Compact coverage for unexpected weather.'
+  'Morrow Tea Infuser|SM-TEA-025|2200|A considered steep for leaves and quiet pauses.'
+  'Pebble Bluetooth Tracker|SM-TRKR-026|5500|Keep everyday essentials close and findable.'
+  'Aster Cotton Sheets|SM-SHTS-027|15900|Crisp, breathable comfort for better rest.'
+  'Common Leather Wallet|SM-WLET-028|7200|A slim home for the cards you actually carry.'
+  'Tide Picnic Blanket|SM-PICN-029|11200|A soft, durable base for outside hours.'
+  'Mono USB-C Hub|SM-HUB-030|6800|One compact connection point for a busy setup.'
+  'Juniper Hand Soap|SM-SOAP-031|2600|A fresh botanical wash for daily rituals.'
+  'Loop Key Organizer|SM-KEYR-032|3300|A quieter, cleaner way to carry your keys.'
 )
 
 echo "Seeding product catalog..."

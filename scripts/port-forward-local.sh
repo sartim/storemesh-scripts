@@ -65,6 +65,8 @@ forward grafana storemesh-monitoring prometheus-stack-grafana 3001:80 optional
 forward prometheus storemesh-monitoring prometheus-stack-kube-prom-prometheus 9090:9090 optional
 forward alertmanager storemesh-monitoring prometheus-stack-kube-prom-alertmanager 9093:9093 optional
 forward tempo storemesh-monitoring tempo 3200:3200 optional
+forward kiali istio-system kiali 20001:20001 optional
+forward kibana storemesh-logging storemesh-logs-kb-http 5601:5601 optional
 
 cat <<EOF
 StoreMesh local forwards are running with context: ${context}
@@ -76,6 +78,8 @@ Grafana:     http://localhost:3001
 Prometheus:  http://localhost:9090
 Alertmanager:http://localhost:9093
 Tempo:       http://localhost:3200
+Kiali:       http://localhost:20001
+Kibana:      https://localhost:5601
 
 Logs: ${log_dir}
 Press Ctrl-C to stop all forwards.

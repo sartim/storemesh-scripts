@@ -45,6 +45,10 @@ application_manifests=(
   istio-base-application.yaml
   istiod-application.yaml
   istio-ingressgateway-application.yaml
+  kiali-application.yaml
+  eck-operator-application.yaml
+  eck-logging-application.yaml
+  fluent-bit-application.yaml
   prometheus-stack-application.yaml
   tempo-application.yaml
   storemesh-user-service-application.yaml

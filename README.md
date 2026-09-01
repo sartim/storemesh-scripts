@@ -37,8 +37,9 @@ putting credential values in shell history.
 ```
 
 The script installs Argo CD and submits one local Application for each current
-StoreMesh service, plus Istio, Prometheus, and Tempo. Staging Applications are
-not submitted by this local bootstrap.
+StoreMesh service, plus Istio, Prometheus, Tempo, Kiali, the ECK operator,
+ECK-managed Elasticsearch/Kibana, and Fluent Bit. Staging Applications are not
+submitted by this local bootstrap.
 
 ## Run the local UI and dashboards
 
@@ -50,19 +51,45 @@ running in a terminal:
 ```
 
 Set `STOREMESH_KUBE_CONTEXT` when using a different Kubernetes context. The
-helper keeps the frontend, BFF, Argo CD, Grafana, Prometheus, Alertmanager, and
-Tempo forwards together and stops all child forwards when interrupted.
+helper keeps the frontend, BFF, Argo CD, Grafana, Prometheus, Alertmanager,
+Tempo, Kiali, and Kibana forwards together and stops all child forwards when
+interrupted. Observability forwards are optional while their operators are
+starting; frontend, BFF, and Argo CD remain required.
 
 ## Seed the demo store
 
-After obtaining a customer token and an admin token, import the curated demo
-catalog and 24 sample orders:
+Import the curated demo catalog and 24 sample orders. The script logs in with
+the local demo accounts by default; explicit tokens can still be supplied via
+environment variables:
 
 ```sh
-STOREMESH_CUSTOMER_TOKEN=... \
-STOREMESH_ADMIN_TOKEN=... \
 bash ./scripts/seed-demo-store.sh
 ```
 
 The script skips duplicate product SKUs and uses idempotency keys for orders.
 It writes through the BFF, so configured Product and Order persistence is used.
+
+For repeatable telemetry and log volume after seeding, run the load harness. It
+uses the local demo accounts by default and never prints bearer tokens:
+
+```sh
+bash ./scripts/load-demo-traffic.sh
+```
+
+The local demo credentials are:
+
+```text
+Customer: demo@storemesh.local / StoreMesh-demo-2026!
+Admin:    admin@storemesh.local / StoreMesh-admin-2026!
+```
+
+Kibana uses the ECK-generated `elastic` user. Retrieve its password without
+committing it:
+
+```sh
+kubectl --context kind-storemesh -n storemesh-logging get secret \
+  storemesh-logs-es-elastic-user -o go-template='{{.data.elastic}}' | base64 -d; echo
+```
+
+Open Kibana at `https://localhost:5601` after the port-forward helper is
+running; its local ECK certificate is self-signed.
