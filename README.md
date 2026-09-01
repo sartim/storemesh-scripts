@@ -99,6 +99,21 @@ Customer: demo@storemesh.local / StoreMesh-demo-2026!
 Admin:    admin@storemesh.local / StoreMesh-admin-2026!
 ```
 
+These customer/admin credentials apply to the Frontend and BFF routes. Other
+forwarded services use the following local access model:
+
+| Service | Local credential or access |
+| --- | --- |
+| Frontend (`3000`) | Customer or admin demo account above |
+| BFF (`8080`) | Customer or admin bearer token obtained from the login API |
+| Argo CD (`8443`) | Username `admin`; retrieve the generated password with `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' \| base64 -d; echo` |
+| Grafana (`3001`) | Username `admin`; retrieve the generated password with `kubectl -n storemesh-monitoring get secret prometheus-stack-grafana -o jsonpath='{.data.admin-password}' \| base64 -d; echo` |
+| Kiali (`20001`) | Anonymous access in the local Kind configuration |
+| Kibana (`5601`) | Username `elastic`; retrieve its ECK-generated password using the command below |
+| Prometheus (`9090`) | No authentication in the local setup |
+| Alertmanager (`9093`) | No authentication in the local setup |
+| Tempo (`3200`) | No authentication in the local setup |
+
 Kibana uses the ECK-generated `elastic` user. Retrieve its password without
 committing it:
 
