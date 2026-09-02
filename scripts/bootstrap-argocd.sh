@@ -91,6 +91,23 @@ for attempt in {1..60}; do
   sleep 5
 done
 
+# Create and label workload namespaces before submitting their Argo
+# Applications. Relying only on CreateNamespace plus managedNamespaceMetadata
+# leaves a small but real window where the first Deployment can create pods
+# before the Istio namespace selector is present.
+workload_namespaces=(
+  storemesh-user-service
+  storemesh-product-service
+  storemesh-inventory-service
+  storemesh-order-service
+  storemesh-bff
+  storemesh-frontend
+)
+for namespace in "${workload_namespaces[@]}"; do
+  kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply -f -
+  kubectl label namespace "${namespace}" istio-injection=enabled --overwrite
+done
+
 application_manifests=(
   kiali-application.yaml
   eck-operator-application.yaml
