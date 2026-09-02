@@ -134,6 +134,18 @@ for attempt in {1..60}; do
   fi
   sleep 5
 done
+for attempt in {1..60}; do
+  if kubectl get kibana.kibana.k8s.elastic.co >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 60 ]; then
+    echo "Timed out waiting for the Kibana API resource." >&2
+    exit 1
+  fi
+  sleep 5
+done
+# Give Argo CD's discovery cache time to observe the newly served resource.
+sleep 15
 kubectl apply --filename "${argocd_dir}/eck-logging-application.yaml"
 
 application_manifests=(
