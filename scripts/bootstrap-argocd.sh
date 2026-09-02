@@ -108,10 +108,26 @@ for namespace in "${workload_namespaces[@]}"; do
   kubectl label namespace "${namespace}" istio-injection=enabled --overwrite
 done
 
+# ECK logging resources must not be submitted until the operator and its CRDs
+# are serving. Otherwise Argo can apply Elasticsearch but lose the Kibana
+# resource during the operator/webhook startup race.
+kubectl create namespace storemesh-logging --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply --filename "${argocd_dir}/eck-operator-application.yaml"
+kubectl -n elastic-system wait --for=condition=Available deployment/elastic-operator --timeout=300s
+for attempt in {1..60}; do
+  if kubectl get crd elasticsearches.elasticsearch.k8s.elastic.co kibanas.kibana.k8s.elastic.co >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 60 ]; then
+    echo "Timed out waiting for ECK CRDs." >&2
+    exit 1
+  fi
+  sleep 5
+done
+kubectl apply --filename "${argocd_dir}/eck-logging-application.yaml"
+
 application_manifests=(
   kiali-application.yaml
-  eck-operator-application.yaml
-  eck-logging-application.yaml
   fluent-bit-application.yaml
   prometheus-stack-application.yaml
   tempo-application.yaml
