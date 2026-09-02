@@ -113,6 +113,16 @@ done
 # resource during the operator/webhook startup race.
 kubectl create namespace storemesh-logging --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply --filename "${argocd_dir}/eck-operator-application.yaml"
+for attempt in {1..60}; do
+  if kubectl -n elastic-system get deployment elastic-operator >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 60 ]; then
+    echo "Timed out waiting for the ECK operator deployment." >&2
+    exit 1
+  fi
+  sleep 5
+done
 kubectl -n elastic-system wait --for=condition=Available deployment/elastic-operator --timeout=300s
 for attempt in {1..60}; do
   if kubectl get crd elasticsearches.elasticsearch.k8s.elastic.co kibanas.kibana.k8s.elastic.co >/dev/null 2>&1; then
