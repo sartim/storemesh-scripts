@@ -72,6 +72,28 @@ jobs:
           done
       - name: Validate Istio gRPC enrollment
         run: storemesh-scripts/scripts/validate-istio-grpc.sh
+      - name: Validate functional observability traffic
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The User Service image is built by its main workflow. Pull the
+          # latest main image for this disposable validation environment so the
+          # opt-in demo-user seeding path is exercised.
+          kubectl -n storemesh-user-service set image deployment/storemesh-user-service \
+            user-service=ghcr.io/sartim/storemesh-user-service:latest
+          kubectl -n storemesh-user-service rollout status deployment/storemesh-user-service --timeout=300s
+          kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
+          bff_pid=$!
+          trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:8080/healthz >/dev/null; then break; fi
+            if [ "${attempt}" -eq 60 ]; then cat /tmp/storemesh-bff-port-forward.log; exit 1; fi
+            sleep 2
+          done
+          export STOREMESH_BFF_URL=http://127.0.0.1:8080
+          export STOREMESH_TRAFFIC_REQUESTS=20
+          storemesh-scripts/scripts/seed-demo-store.sh
+          storemesh-scripts/scripts/load-demo-traffic.sh
       - name: Validate observability resources
         shell: bash
         run: |

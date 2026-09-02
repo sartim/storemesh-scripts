@@ -80,7 +80,7 @@ while IFS= read -r product_id; do
 done <<EOF
 $(jq -r '.products[]?.id // empty' <<<"${products_json}")
 EOF
-token_payload="$(printf '%s' "${customer_token}" | cut -d. -f2 | tr '_-' '/+' | awk '{ print $0 "===" }' | base64 -D 2>/dev/null || true)"
+token_payload="$(printf '%s' "${customer_token}" | cut -d. -f2 | tr '_-' '/+' | awk '{ print $0 "===" }' | base64 --decode 2>/dev/null || printf '%s' "${customer_token}" | cut -d. -f2 | tr '_-' '/+' | awk '{ print $0 "===" }' | base64 -D 2>/dev/null || true)"
 customer_id="$(jq -r '.sub // empty' <<<"${token_payload}")"
 
 if [[ "${#product_ids[@]}" -eq 0 || -z "${customer_id}" ]]; then

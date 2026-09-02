@@ -5,6 +5,10 @@ set -euo pipefail
 namespace="storemesh-user-service"
 postgres_password="${STOREMESH_POSTGRES_PASSWORD:-storemesh-local-password}"
 jwt_secret="${STOREMESH_JWT_SECRET:-$(head -c 48 /dev/urandom | base64 | tr -d '\n' | cut -c1-64)}"
+customer_email="${STOREMESH_CUSTOMER_EMAIL:-demo@storemesh.local}"
+customer_password="${STOREMESH_CUSTOMER_PASSWORD:-StoreMesh-demo-2026!}"
+admin_email="${STOREMESH_ADMIN_EMAIL:-admin@storemesh.local}"
+admin_password="${STOREMESH_ADMIN_PASSWORD:-StoreMesh-admin-2026!}"
 
 if ! command -v kubectl >/dev/null 2>&1; then
   echo "kubectl is required but was not found on PATH." >&2
@@ -109,6 +113,10 @@ kubectl -n "${namespace}" create secret generic storemesh-user-service-secrets \
   --from-literal=DATABASE_URL="postgres://storemesh:${postgres_password}@postgres.${namespace}.svc.cluster.local:5432/storemesh?sslmode=disable" \
   --from-literal=REDIS_URL="redis://redis.${namespace}.svc.cluster.local:6379/0" \
   --from-literal=JWT_SECRET="${jwt_secret}" \
+  --from-literal=DEMO_CUSTOMER_EMAIL="${customer_email}" \
+  --from-literal=DEMO_CUSTOMER_PASSWORD="${customer_password}" \
+  --from-literal=DEMO_ADMIN_EMAIL="${admin_email}" \
+  --from-literal=DEMO_ADMIN_PASSWORD="${admin_password}" \
   --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
 # Domain services use the same local PostgreSQL instance in the disposable
