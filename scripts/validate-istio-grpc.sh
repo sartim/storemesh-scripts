@@ -23,7 +23,8 @@ for application in "${applications[@]}"; do
     for attempt in {1..60}; do
       containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.spec.containers[*].name}')"
       ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.ready}{" "}{end}')"
-      if [[ " $containers " == *" istio-proxy "* && "$ready" != *"false"* ]]; then
+      echo "${namespace}/${pod}: containers=${containers:-none} ready=${ready:-none}"
+      if printf '%s\n' "$containers" | grep -qw istio-proxy && [[ "$ready" != *"false"* ]]; then
         break
       fi
       if [[ "$attempt" -eq 60 ]]; then
