@@ -1,0 +1,82 @@
+name: Kind platform smoke
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 3 * * 1"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: kind-platform-smoke
+  cancel-in-progress: true
+
+jobs:
+  platform-smoke:
+    name: Disposable Kind platform validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      STOREMESH_PLATFORM_DIR: ${{ github.workspace }}
+      KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
+    steps:
+      - name: Check out scripts
+        uses: actions/checkout@v4
+        with:
+          path: storemesh-scripts
+      - name: Check out Kind configuration
+        uses: actions/checkout@v4
+        with:
+          repository: sartim/storemesh-kind-cluster
+          path: storemesh-kind-cluster
+      - name: Check out Argo CD applications
+        uses: actions/checkout@v4
+        with:
+          repository: sartim/storemesh-argocd-repo
+          path: storemesh-argocd-repo
+      - name: Install Kind
+        shell: bash
+        run: |
+          if ! command -v kind >/dev/null 2>&1; then
+            curl --fail --silent --show-error --location \
+              https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64 \
+              --output kind
+            chmod +x kind
+            sudo mv kind /usr/local/bin/kind
+          fi
+          kind version
+      - name: Create disposable cluster
+        run: storemesh-scripts/scripts/create-kind-cluster.sh
+      - name: Bootstrap local data services
+        run: storemesh-scripts/scripts/bootstrap-local-data-services.sh
+      - name: Install Argo CD and submit applications
+        run: storemesh-scripts/scripts/bootstrap-argocd.sh
+      - name: Wait for StoreMesh workloads
+        shell: bash
+        run: |
+          set -euo pipefail
+          for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff storemesh-frontend; do
+            kubectl -n "${namespace}" wait --for=condition=Available deployment --all --timeout=300s
+          done
+      - name: Validate Istio gRPC enrollment
+        run: storemesh-scripts/scripts/validate-istio-grpc.sh
+      - name: Validate observability resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl -n storemesh-monitoring wait --for=condition=Available deployment --all --timeout=300s
+          kubectl -n istio-system wait --for=condition=Available deployment/kiali --timeout=300s
+          kubectl -n storemesh-logging wait --for=jsonpath='{.status.health}'=green elasticsearch/storemesh-logs --timeout=600s
+          kubectl -n storemesh-logging wait --for=condition=Available deployment --all --timeout=600s
+      - name: Collect diagnostics
+        if: always()
+        shell: bash
+        run: |
+          kubectl get nodes -o wide || true
+          kubectl get applications -n argocd -o wide || true
+          kubectl get pods -A -o wide || true
+          kubectl get events -A --sort-by=.lastTimestamp | tail -200 || true
+      - name: Delete disposable cluster
+        if: always()
+        run: kind delete cluster --name storemesh

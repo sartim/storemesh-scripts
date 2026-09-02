@@ -18,6 +18,15 @@ reports a direct recovery message if the daemon is unavailable.
 ./scripts/create-kind-cluster.sh
 ```
 
+## Run platform validation in GitHub Actions
+
+The `Kind platform smoke` workflow creates a disposable Kind cluster on a
+GitHub-hosted runner, bootstraps PostgreSQL/Redis and Argo CD, waits for the
+StoreMesh workloads, validates Istio sidecars, checks the monitoring stack and
+ECK-managed logging resources, then deletes the cluster. It runs weekly and can
+be started manually from the Actions tab. Use this workflow for repeatable
+platform validation so local Docker is only needed for interactive development.
+
 ## Supply runtime credentials
 
 Create the namespace and secret before submitting the Argo CD application:
