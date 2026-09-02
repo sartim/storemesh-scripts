@@ -23,13 +23,14 @@ for application in "${applications[@]}"; do
     all_ready=true
     while IFS= read -r pod; do
       [[ -z "$pod" ]] && continue
-      if ! containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.spec.containers[*].name}' 2>/dev/null)"; then
+      if ! containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .spec.containers[*]}{.name}{" "}{end}' 2>/dev/null)"; then
         all_ready=false
         break
       fi
       ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.ready}{" "}{end}')"
-      echo "${namespace}/${pod}: containers=${containers:-none} ready=${ready:-none}"
-      if ! printf '%s\n' "$containers" | grep -qw istio-proxy || [[ "$ready" == *"false"* ]]; then
+      status_containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.name}{" "}{end}')"
+      echo "${namespace}/${pod}: containers=${containers:-none} status_containers=${status_containers:-none} ready=${ready:-none}"
+      if ! printf '%s\n' "$status_containers" | grep -qw istio-proxy || [[ "$ready" == *"false"* ]]; then
         all_ready=false
         break
       fi
