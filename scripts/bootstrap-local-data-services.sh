@@ -110,6 +110,26 @@ kubectl -n "${namespace}" create secret generic storemesh-user-service-secrets \
   --from-literal=JWT_SECRET="${jwt_secret}" \
   --dry-run=client -o yaml | kubectl apply --validate=false -f -
 
+# Domain services use the same local PostgreSQL instance in the disposable
+# Kind profile. Keep these secrets generated at bootstrap time and out of Git.
+for service in storemesh-product-service storemesh-inventory-service storemesh-order-service; do
+  kubectl create namespace "${service}" --dry-run=client -o yaml | kubectl apply --validate=false -f -
+done
+
+kubectl -n storemesh-product-service create secret generic storemesh-product-service-secrets \
+  --from-literal=DATABASE_URL="postgres://storemesh:${postgres_password}@postgres.${namespace}.svc.cluster.local:5432/storemesh?sslmode=disable" \
+  --from-literal=JWT_SECRET="${jwt_secret}" \
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
+
+kubectl -n storemesh-inventory-service create secret generic storemesh-inventory-service-secrets \
+  --from-literal=DATABASE_URL="postgres://storemesh:${postgres_password}@postgres.${namespace}.svc.cluster.local:5432/storemesh?sslmode=disable" \
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
+
+kubectl -n storemesh-order-service create secret generic storemesh-order-service-secrets \
+  --from-literal=DATABASE_URL="postgres://storemesh:${postgres_password}@postgres.${namespace}.svc.cluster.local:5432/storemesh?sslmode=disable" \
+  --from-literal=JWT_SECRET="${jwt_secret}" \
+  --dry-run=client -o yaml | kubectl apply --validate=false -f -
+
 kubectl -n "${namespace}" wait --for=condition=Available deployment/postgres --timeout=180s
 kubectl -n "${namespace}" wait --for=condition=Available deployment/redis --timeout=180s
 
