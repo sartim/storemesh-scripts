@@ -20,10 +20,19 @@ for application in "${applications[@]}"; do
   [[ -n "$pods" ]] || { echo "${namespace}: no pods found" >&2; exit 1; }
   while IFS= read -r pod; do
     [[ -z "$pod" ]] && continue
-    containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.spec.containers[*].name}')"
-    [[ " $containers " == *" istio-proxy "* ]] || { echo "${namespace}/${pod}: istio-proxy is missing" >&2; exit 1; }
-    ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.ready}{" "}{end}')"
-    [[ "$ready" != *"false"* ]] || { echo "${namespace}/${pod}: a container is not ready" >&2; exit 1; }
+    for attempt in {1..60}; do
+      containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.spec.containers[*].name}')"
+      ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.ready}{" "}{end}')"
+      if [[ " $containers " == *" istio-proxy "* && "$ready" != *"false"* ]]; then
+        break
+      fi
+      if [[ "$attempt" -eq 60 ]]; then
+        [[ " $containers " == *" istio-proxy "* ]] || { echo "${namespace}/${pod}: istio-proxy was not injected" >&2; exit 1; }
+        echo "${namespace}/${pod}: timed out waiting for all containers to become ready" >&2
+        exit 1
+      fi
+      sleep 5
+    done
   done <<< "$pods"
   echo "${namespace}: enrolled and ready"
 done
