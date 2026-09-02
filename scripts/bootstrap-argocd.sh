@@ -80,6 +80,16 @@ for attempt in {1..60}; do
   fi
   sleep 5
 done
+for attempt in {1..60}; do
+  if kubectl get mutatingwebhookconfiguration -o name | grep -q 'istio-sidecar-injector'; then
+    break
+  fi
+  if [ "${attempt}" -eq 60 ]; then
+    echo "Timed out waiting for the Istio sidecar injector webhook." >&2
+    exit 1
+  fi
+  sleep 5
+done
 
 application_manifests=(
   kiali-application.yaml
