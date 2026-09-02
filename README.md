@@ -55,6 +55,23 @@ current StoreMesh service, plus Istio, Prometheus, Tempo, Kiali, the ECK operato
 ECK-managed Elasticsearch/Kibana, and Fluent Bit. Staging Applications are not
 submitted by this local bootstrap.
 
+## Enable local runtime feature flags
+
+Flagsmith is optional and is not installed by the normal bootstrap. After
+creating the local Flagsmith application and a server-side environment key in
+its UI, activate it for the BFF without putting the key in Git:
+
+```sh
+export FLAGSMITH_SERVER_KEY='ser.replace-with-your-environment-key'
+export FLAGSMITH_BASE_URL='http://flagsmith-api.storemesh-flagsmith.svc.cluster.local/'
+./scripts/activate-flagsmith-local.sh
+```
+
+The helper applies the opt-in Argo Application, creates the BFF Secret, and
+updates the BFF Application's Helm values. It never prints the key. Keep the
+Flagsmith key server-side; web, Android, and iOS receive only the allow-listed
+response from `GET /api/v1/config`.
+
 ## Run the local UI and dashboards
 
 After the local cluster and applications are ready, keep the forwarding helper
