@@ -79,9 +79,11 @@ jobs:
           # The User Service image is built by its main workflow. Pull the
           # latest main image for this disposable validation environment so the
           # opt-in demo-user seeding path is exercised.
-          kubectl -n storemesh-user-service set image deployment/storemesh-user-service \
-            user-service=ghcr.io/sartim/storemesh-user-service:latest
-          kubectl -n storemesh-user-service rollout status deployment/storemesh-user-service --timeout=300s
+          user_deployment="$(kubectl get deployment -n storemesh-user-service -o jsonpath='{.items[0].metadata.name}')"
+          user_container="$(kubectl get deployment "${user_deployment}" -n storemesh-user-service -o jsonpath='{.spec.template.spec.containers[0].name}')"
+          kubectl -n storemesh-user-service set image "deployment/${user_deployment}" \
+            "${user_container}=ghcr.io/sartim/storemesh-user-service:latest"
+          kubectl -n storemesh-user-service rollout status "deployment/${user_deployment}" --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
           trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
