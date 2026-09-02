@@ -52,6 +52,25 @@ jobs:
         run: storemesh-scripts/scripts/bootstrap-local-data-services.sh
       - name: Install Argo CD and submit applications
         run: storemesh-scripts/scripts/bootstrap-argocd.sh
+      - name: Ensure Istio injection is ready
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl -n istio-system wait --for=condition=Available deployment/istiod --timeout=600s
+          for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff; do
+            for attempt in {1..60}; do
+              deployment="storemesh-${namespace#storemesh-}"
+              if kubectl -n "${namespace}" get deployment "${deployment}" >/dev/null 2>&1; then
+                kubectl -n "${namespace}" rollout restart deployment "${deployment}"
+                break
+              fi
+              if [ "${attempt}" -eq 60 ]; then
+                echo "Timed out waiting for ${namespace}/${deployment}." >&2
+                exit 1
+              fi
+              sleep 5
+            done
+          done
       - name: Wait for StoreMesh workloads
         shell: bash
         run: |
