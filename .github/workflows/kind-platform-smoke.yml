@@ -79,7 +79,7 @@ jobs:
           # The User Service image is built by its main workflow. Pull the
           # latest main image for this disposable validation environment so the
           # opt-in demo-user seeding path is exercised.
-          user_deployment="$(kubectl get deployment -n storemesh-user-service -o jsonpath='{.items[0].metadata.name}')"
+          user_deployment="$(kubectl get deployment -n storemesh-user-service -l app.kubernetes.io/name=storemesh-user-service -o jsonpath='{.items[0].metadata.name}')"
           user_container="$(kubectl get deployment "${user_deployment}" -n storemesh-user-service -o jsonpath='{.spec.template.spec.containers[0].name}')"
           kubectl -n storemesh-user-service set image "deployment/${user_deployment}" \
             "${user_container}=ghcr.io/sartim/storemesh-user-service:latest"
