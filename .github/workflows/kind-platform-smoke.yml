@@ -93,6 +93,10 @@ jobs:
               sleep 5
             done
           done
+          for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff; do
+            deployment="storemesh-${namespace#storemesh-}"
+            kubectl -n "${namespace}" rollout status deployment "${deployment}" --timeout=600s
+          done
       - name: Wait for StoreMesh workloads
         shell: bash
         run: |
