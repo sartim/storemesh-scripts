@@ -29,8 +29,9 @@ for application in "${applications[@]}"; do
       fi
       ready="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.ready}{" "}{end}')"
       status_containers="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{range .status.containerStatuses[*]}{.name}{" "}{end}')"
-      echo "${namespace}/${pod}: containers=${containers:-none} status_containers=${status_containers:-none} ready=${ready:-none}"
-      if ! printf '%s\n' "$status_containers" | grep -qw istio-proxy || [[ "$ready" == *"false"* ]]; then
+      sidecar_status="$(kubectl get pod "$pod" -n "$namespace" -o jsonpath='{.metadata.annotations.sidecar\.istio\.io/status}')"
+      echo "${namespace}/${pod}: containers=${containers:-none} status_containers=${status_containers:-none} ready=${ready:-none} sidecar_status=$([[ -n "$sidecar_status" ]] && echo present || echo missing)"
+      if [[ -z "$sidecar_status" ]] || [[ "$ready" == *"false"* ]]; then
         all_ready=false
         break
       fi
