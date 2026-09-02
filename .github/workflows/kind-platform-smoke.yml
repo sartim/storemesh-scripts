@@ -68,6 +68,17 @@ jobs:
             sleep 5
           done
           kubectl -n istio-system wait --for=condition=Available deployment/istiod --timeout=600s
+          for attempt in {1..60}; do
+            if kubectl -n istio-system get endpoints istiod -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; then
+              break
+            fi
+            if [ "${attempt}" -eq 60 ]; then
+              echo "Timed out waiting for an Istiod service endpoint." >&2
+              exit 1
+            fi
+            sleep 5
+          done
+          sleep 15
           for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff; do
             for attempt in {1..60}; do
               deployment="storemesh-${namespace#storemesh-}"
