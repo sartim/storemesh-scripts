@@ -56,6 +56,17 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          for attempt in {1..120}; do
+            if kubectl get namespace istio-system >/dev/null 2>&1 && kubectl -n istio-system get deployment istiod >/dev/null 2>&1; then
+              break
+            fi
+            if [ "${attempt}" -eq 120 ]; then
+              echo "Timed out waiting for the Istio control-plane deployment." >&2
+              kubectl get applications -n argocd || true
+              exit 1
+            fi
+            sleep 5
+          done
           kubectl -n istio-system wait --for=condition=Available deployment/istiod --timeout=600s
           for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff; do
             for attempt in {1..60}; do
