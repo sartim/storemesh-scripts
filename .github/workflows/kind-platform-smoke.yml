@@ -57,6 +57,17 @@ jobs:
         run: |
           set -euo pipefail
           for namespace in storemesh-user-service storemesh-product-service storemesh-inventory-service storemesh-order-service storemesh-bff storemesh-frontend; do
+            for attempt in {1..60}; do
+              if kubectl -n "${namespace}" get deployment --no-headers 2>/dev/null | grep -q .; then
+                break
+              fi
+              if [ "${attempt}" -eq 60 ]; then
+                echo "Timed out waiting for a deployment in ${namespace}." >&2
+                kubectl -n "${namespace}" get all || true
+                exit 1
+              fi
+              sleep 5
+            done
             kubectl -n "${namespace}" wait --for=condition=Available deployment --all --timeout=300s
           done
       - name: Validate Istio gRPC enrollment
