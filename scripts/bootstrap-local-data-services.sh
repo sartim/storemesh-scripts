@@ -12,6 +12,7 @@ if ! command -v kubectl >/dev/null 2>&1; then
 fi
 
 kubectl create namespace "${namespace}" --dry-run=client -o yaml | kubectl apply --validate=false -f -
+kubectl label namespace "${namespace}" istio-injection=enabled --overwrite
 
 kubectl -n "${namespace}" create secret generic storemesh-local-postgres \
   --from-literal=POSTGRES_USER=storemesh \
@@ -114,6 +115,7 @@ kubectl -n "${namespace}" create secret generic storemesh-user-service-secrets \
 # Kind profile. Keep these secrets generated at bootstrap time and out of Git.
 for service in storemesh-product-service storemesh-inventory-service storemesh-order-service; do
   kubectl create namespace "${service}" --dry-run=client -o yaml | kubectl apply --validate=false -f -
+  kubectl label namespace "${service}" istio-injection=enabled --overwrite
 done
 
 kubectl -n storemesh-product-service create secret generic storemesh-product-service-secrets \
