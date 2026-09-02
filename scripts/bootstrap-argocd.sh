@@ -46,11 +46,42 @@ if ! kubectl get secret \
   exit 1
 fi
 
-application_manifests=(
+platform_manifests=(
   istio-base-application.yaml
   istiod-application.yaml
   istio-ingressgateway-application.yaml
   istio-mesh-policy-application.yaml
+)
+
+for manifest in "${platform_manifests[@]}"; do
+  kubectl apply --filename "${argocd_dir}/${manifest}"
+done
+
+# Domain workloads must not be created until the Istio injector is serving;
+# otherwise a namespace label can exist while the first pods miss sidecars.
+for attempt in {1..120}; do
+  if kubectl get namespace istio-system >/dev/null 2>&1 && kubectl -n istio-system get deployment istiod >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 120 ]; then
+    echo "Timed out waiting for the Istio control-plane deployment." >&2
+    exit 1
+  fi
+  sleep 5
+done
+kubectl -n istio-system wait --for=condition=Available deployment/istiod --timeout=600s
+for attempt in {1..60}; do
+  if kubectl -n istio-system get endpoints istiod -o jsonpath='{.subsets[*].addresses[*].ip}' | grep -q .; then
+    break
+  fi
+  if [ "${attempt}" -eq 60 ]; then
+    echo "Timed out waiting for an Istiod service endpoint." >&2
+    exit 1
+  fi
+  sleep 5
+done
+
+application_manifests=(
   kiali-application.yaml
   eck-operator-application.yaml
   eck-logging-application.yaml

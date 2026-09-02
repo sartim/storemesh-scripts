@@ -49,8 +49,8 @@ putting credential values in shell history.
 ./scripts/bootstrap-argocd.sh
 ```
 
-The script installs Argo CD and submits one local Application for each current
-StoreMesh service, plus Istio, Prometheus, Tempo, Kiali, the ECK operator,
+The script installs Argo CD, waits for the Istio injector to become ready, and
+then submits one local Application for each current StoreMesh service, plus Istio, Prometheus, Tempo, Kiali, the ECK operator,
 ECK-managed Elasticsearch/Kibana, and Fluent Bit. Staging Applications are not
 submitted by this local bootstrap.
 
