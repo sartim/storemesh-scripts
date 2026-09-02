@@ -17,6 +17,17 @@ if ! command -v kubectl >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Docker is required by Kind but was not found on PATH." >&2
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Docker is installed but the Docker daemon is unavailable." >&2
+  echo "Start Docker Desktop (or the local Docker daemon), then rerun this script." >&2
+  exit 1
+fi
+
 if [ ! -f "${cluster_config}" ]; then
   echo "Kind configuration not found: ${cluster_config}" >&2
   echo "Set STOREMESH_PLATFORM_DIR to the directory containing the StoreMesh repositories." >&2

@@ -10,6 +10,10 @@ and `storemesh-argocd-repo`.
 
 ## Create the local cluster
 
+Kind runs its nodes as Docker containers, so Docker Desktop or another local
+Docker daemon must be running before this command. The script checks this and
+reports a direct recovery message if the daemon is unavailable.
+
 ```sh
 ./scripts/create-kind-cluster.sh
 ```
