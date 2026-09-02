@@ -72,6 +72,10 @@ updates the BFF Application's Helm values. It never prints the key. Keep the
 Flagsmith key server-side; web, Android, and iOS receive only the allow-listed
 response from `GET /api/v1/config`.
 
+The helper also creates the Flagsmith Django secret key before chart sync;
+this avoids the chart's image-based secret-generation Job and keeps local
+bootstrap independent of the `bitnamisecure/kubectl` image.
+
 ## Run the local UI and dashboards
 
 After the local cluster and applications are ready, keep the forwarding helper

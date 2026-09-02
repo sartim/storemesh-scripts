@@ -8,6 +8,8 @@ argocd_dir="${workspace_dir}/storemesh-argocd-repo"
 flagsmith_key="${FLAGSMITH_SERVER_KEY:-}"
 flagsmith_base_url="${FLAGSMITH_BASE_URL:-}"
 bff_secret="storemesh-bff-flagsmith"
+django_secret="storemesh-flagsmith-django-secret-key"
+django_secret_key="${FLAGSMITH_DJANGO_SECRET_KEY:-$(openssl rand -hex 32)}"
 
 if ! command -v kubectl >/dev/null 2>&1; then
   echo "kubectl is required but was not found on PATH." >&2
@@ -27,6 +29,10 @@ if [ ! -f "${argocd_dir}/storemesh-flagsmith-application.yaml" ]; then
   exit 1
 fi
 
+kubectl create namespace storemesh-flagsmith --dry-run=client -o yaml | kubectl apply --filename -
+kubectl -n storemesh-flagsmith create secret generic "${django_secret}" \
+  --from-literal=django-secret-key="${django_secret_key}" \
+  --dry-run=client -o yaml | kubectl apply --filename -
 kubectl apply --filename "${argocd_dir}/storemesh-flagsmith-application.yaml"
 kubectl create namespace storemesh-bff --dry-run=client -o yaml | kubectl apply --filename -
 kubectl -n storemesh-bff create secret generic "${bff_secret}" \
