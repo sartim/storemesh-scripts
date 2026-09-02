@@ -78,7 +78,10 @@ jobs:
           set -euo pipefail
           kubectl -n storemesh-monitoring wait --for=condition=Available deployment --all --timeout=300s
           kubectl -n istio-system wait --for=condition=Available deployment/kiali --timeout=300s
-          kubectl -n storemesh-logging wait --for=jsonpath='{.status.health}'=green elasticsearch/storemesh-logs --timeout=600s
+          # A single-node Elasticsearch cluster is expected to be yellow when
+          # replica shards cannot be allocated. ECK's Ready condition is the
+          # correct availability check for this local topology.
+          kubectl -n storemesh-logging wait --for=condition=Ready elasticsearch/storemesh-logs --timeout=600s
           kubectl -n storemesh-logging wait --for=condition=Available deployment --all --timeout=600s
       - name: Collect diagnostics
         if: always()
