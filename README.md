@@ -53,7 +53,9 @@ The script installs Argo CD, waits for the Istio injector endpoint and webhook
 registration to become ready, and then submits one local Application for each
 current StoreMesh service, plus Istio, Prometheus, Tempo, Kiali, the ECK operator,
 ECK-managed Elasticsearch/Kibana, and Fluent Bit. Staging Applications are not
-submitted by this local bootstrap.
+submitted by this local bootstrap. It also waits for Argo repo-server to become
+Available with a laptop-friendly health window before submitting dependent
+applications.
 
 ## Enable local runtime feature flags
 
