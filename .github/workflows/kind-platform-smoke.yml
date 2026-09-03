@@ -104,10 +104,11 @@ jobs:
             '{stringData:{DEMO_CUSTOMER_EMAIL:$customer_email,DEMO_CUSTOMER_PASSWORD:$customer_password,DEMO_ADMIN_EMAIL:$admin_email,DEMO_ADMIN_PASSWORD:$admin_password}}')"
           kubectl -n storemesh-user-service patch secret storemesh-user-service-secrets \
             --type merge --patch "$demo_secret_patch"
-          # Apply the transitional issuer compatibility only to this
-          # disposable Argo application. Patching the Application source keeps
-          # Argo self-heal from reverting the value before traffic validation.
-          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
+          # Pin the disposable Product and Order applications to the locally
+          # built images. Product accepts the dedicated service JWT minted by
+          # Order; patching the Application source keeps Argo self-heal from
+          # reverting these values before traffic validation.
+          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-product-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
           kubectl -n argocd patch application storemesh-product-service \
             --type merge --patch "$product_issuer_patch"
           order_image_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"image.repository","value":"storemesh-order-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
