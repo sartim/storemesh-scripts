@@ -65,12 +65,18 @@ products=(
 echo "Seeding product catalog..."
 for entry in "${products[@]}"; do
   IFS='|' read -r name sku price description <<<"${entry}"
-  curl -fsS -o /dev/null -w "${sku}: %{http_code}\n" \
+  response_file="$(mktemp)"
+  http_code="$(curl -sS -o "${response_file}" -w '%{http_code}' \
     -X POST "${bff_url}/api/v1/admin/products" \
     -H "Authorization: Bearer ${admin_token}" \
     -H 'Content-Type: application/json' \
-    -d "$(jq -nc --arg sku "${sku}" --arg name "${name}" --arg description "${description}" --argjson price "${price}" '{sku:$sku,name:$name,description:$description,priceMinor:$price,currency:"USD"}')" \
-    || true
+    -d "$(jq -nc --arg sku "${sku}" --arg name "${name}" --arg description "${description}" --argjson price "${price}" '{sku:$sku,name:$name,description:$description,priceMinor:$price,currency:"USD"}')" || true)"
+  if [[ "${http_code}" =~ ^[45] ]]; then
+    echo "${sku}: ${http_code} $(<"${response_file}")" >&2
+  else
+    echo "${sku}: ${http_code}"
+  fi
+  rm -f "${response_file}"
 done
 
 products_json="$(curl -fsS "${bff_url}/api/v1/products?page_size=100" -H "Authorization: Bearer ${customer_token}")"
