@@ -199,6 +199,9 @@ CREATE TABLE IF NOT EXISTS orders (
   created_at TIMESTAMPTZ NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL
 );
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS idempotency_key TEXT;
+CREATE UNIQUE INDEX IF NOT EXISTS orders_idempotency_key_idx
+  ON orders (idempotency_key) WHERE idempotency_key IS NOT NULL;
 CREATE TABLE IF NOT EXISTS order_lines (
   order_id UUID NOT NULL REFERENCES orders(order_id) ON DELETE CASCADE,
   line_number INTEGER NOT NULL,
