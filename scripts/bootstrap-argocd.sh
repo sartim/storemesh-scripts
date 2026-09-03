@@ -179,6 +179,15 @@ done
 sleep 15
 kubectl apply --filename "${argocd_dir}/eck-logging-application.yaml"
 
+# Include Flagsmith in the local platform smoke path. Its server-side
+# environment key remains an explicit activation step, but the service itself
+# should be available for UI and API validation on a clean cluster.
+kubectl create namespace storemesh-flagsmith --dry-run=client -o yaml | kubectl apply -f -
+kubectl -n storemesh-flagsmith create secret generic storemesh-flagsmith-django-secret-key \
+  --from-literal=django-secret-key="$(openssl rand -hex 32)" \
+  --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply --filename "${argocd_dir}/storemesh-flagsmith-application.yaml"
+
 platform_manifests=(
   kiali-application.yaml
   fluent-bit-application.yaml
