@@ -74,8 +74,6 @@ fi
 platform_manifests=(
   istio-base-application.yaml
   istiod-application.yaml
-  istio-ingressgateway-application.yaml
-  istio-mesh-policy-application.yaml
 )
 
 # The gateway chart intentionally starts with image "auto" and relies on the
@@ -120,6 +118,12 @@ for attempt in {1..60}; do
     exit 1
   fi
   sleep 5
+done
+
+# Submit the gateway only after the injector webhook is serving. The gateway
+# chart intentionally renders image "auto" and depends on this mutation.
+for manifest in istio-ingressgateway-application.yaml istio-mesh-policy-application.yaml; do
+  kubectl apply --filename "${argocd_dir}/${manifest}"
 done
 
 # Create and label workload namespaces before submitting their Argo
