@@ -25,11 +25,36 @@ kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply --server-side --force-conflicts \
   --namespace argocd \
   --filename "${argocd_manifest}"
+# Kind can take several minutes to unpack and initialize the Argo image on a
+# resource-constrained laptop. Give repo-server a generous health window so
+# the kubelet does not restart it while its health endpoint is still loading.
+kubectl -n argocd patch deployment argocd-repo-server --type strategic --patch '
+spec:
+  template:
+    spec:
+      containers:
+        - name: argocd-repo-server
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 20
+          readinessProbe:
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 20
+'
 kubectl wait \
   --namespace argocd \
   --for=condition=Available \
   deployment/argocd-server \
   --timeout=300s
+kubectl wait \
+  --namespace argocd \
+  --for=condition=Available \
+  deployment/argocd-repo-server \
+  --timeout=600s
 
 kubectl apply --filename "${argocd_dir}/project.yaml"
 
