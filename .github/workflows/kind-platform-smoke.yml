@@ -86,14 +86,13 @@ jobs:
             '{stringData:{DEMO_CUSTOMER_EMAIL:$customer_email,DEMO_CUSTOMER_PASSWORD:$customer_password,DEMO_ADMIN_EMAIL:$admin_email,DEMO_ADMIN_PASSWORD:$admin_password}}')"
           kubectl -n storemesh-user-service patch secret storemesh-user-service-secrets \
             --type merge --patch "$demo_secret_patch"
-          # Product Service still uses the transitional service-JWT boundary,
-          # while the BFF forwards the demo user token during this functional
-          # smoke test. Disable that interceptor only in this disposable CI
-          # cluster so catalog/order traffic can be exercised independently;
-          # shared environments must keep Product JWT validation enabled.
-          product_secret_patch="$(jq -nc '{stringData:{JWT_SECRET:""}}')"
-          kubectl -n storemesh-product-service patch secret storemesh-product-service-secrets \
-            --type merge --patch "$product_secret_patch"
+          # The bootstrap uses the same transitional signing secret for the
+          # user and product services. Product normally expects its own issuer,
+          # so align only the disposable CI deployment with the seeded user
+          # token that the BFF forwards during this smoke test. Authentication
+          # remains enabled; shared environments keep their normal values.
+          kubectl -n storemesh-product-service set env deployment/storemesh-product-service \
+            JWT_ISSUER=storemesh-user-service JWT_AUDIENCE=storemesh-platform
           kubectl -n storemesh-product-service rollout restart deployment/storemesh-product-service
           kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
