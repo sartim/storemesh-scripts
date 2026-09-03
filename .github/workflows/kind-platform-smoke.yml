@@ -155,6 +155,12 @@ jobs:
           kubectl -n argocd get application eck-logging -o yaml || true
           kubectl -n storemesh-logging get kibana storemesh-logs -o yaml || true
           kubectl -n storemesh-logging logs -l common.k8s.elastic.co/type=kibana --all-containers --tail=200 || true
+          kubectl -n storemesh-product-service logs deployment/storemesh-product-service -c product-service --tail=200 || true
+          kubectl -n storemesh-bff logs deployment/storemesh-bff -c bff --tail=200 || true
+          kubectl -n storemesh-user-service logs deployment/postgres --tail=100 || true
+          kubectl -n storemesh-user-service exec deployment/postgres -- \
+            env PGPASSWORD="${STOREMESH_POSTGRES_PASSWORD:-storemesh-local-password}" \
+            psql -U storemesh -d storemesh -c '\\dt' || true
           kubectl get events -A --sort-by=.lastTimestamp | tail -200 || true
       - name: Delete disposable cluster
         if: always()
