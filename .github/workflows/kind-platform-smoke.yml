@@ -92,6 +92,13 @@ jobs:
           kubectl -n storemesh-user-service set image "deployment/${user_deployment}" \
             "${user_container}=ghcr.io/sartim/storemesh-user-service:latest"
           kubectl -n storemesh-user-service rollout status "deployment/${user_deployment}" --timeout=300s
+          # Product Service still uses the transitional service-JWT boundary,
+          # while the BFF forwards the demo user token during this functional
+          # smoke test. Disable that interceptor only in this disposable CI
+          # cluster so catalog/order traffic can be exercised independently;
+          # shared environments must keep Product JWT validation enabled.
+          kubectl -n storemesh-product-service set env deployment/storemesh-product-service JWT_SECRET-
+          kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
           trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
