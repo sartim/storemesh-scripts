@@ -105,10 +105,10 @@ jobs:
           kubectl -n storemesh-user-service patch secret storemesh-user-service-secrets \
             --type merge --patch "$demo_secret_patch"
           # Pin the disposable Product and Order applications to the locally
-          # built images. Product accepts the dedicated service JWT minted by
-          # Order; patching the Application source keeps Argo self-heal from
-          # reverting these values before traffic validation.
-          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-product-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
+          # built images. Product and the disposable Order path use the shared
+          # local issuer; patching the Application source keeps Argo self-heal
+          # from reverting these values before traffic validation.
+          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
           kubectl -n argocd patch application storemesh-product-service \
             --type merge --patch "$product_issuer_patch"
           order_image_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"image.repository","value":"storemesh-order-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
@@ -121,7 +121,7 @@ jobs:
           for attempt in {1..60}; do
             rendered_issuer="$(kubectl -n storemesh-product-service get deployment storemesh-product-service \
               -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="JWT_ISSUER")].value}')"
-            if [ "${rendered_issuer}" = "storemesh-product-service" ]; then
+            if [ "${rendered_issuer}" = "storemesh-user-service" ]; then
               break
             fi
             if [ "${attempt}" -eq 60 ]; then
@@ -132,6 +132,11 @@ jobs:
             sleep 5
           done
           kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
+          # The current Order image mints a dedicated service JWT. In this
+          # disposable profile it shares the User Service signing key, so use
+          # the shared local issuer accepted by Product and the BFF demo token.
+          kubectl -n storemesh-order-service set env deployment/storemesh-order-service \
+            PRODUCT_JWT_ISSUER=storemesh-user-service
           kubectl -n storemesh-order-service rollout status deployment/storemesh-order-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
