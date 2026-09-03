@@ -92,8 +92,22 @@ jobs:
           product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"}]}}}}'
           kubectl -n argocd patch application storemesh-product-service \
             --type merge --patch "$product_issuer_patch"
-          kubectl -n argocd wait --for=jsonpath='{.status.sync.status}'=Synced \
-            application/storemesh-product-service --timeout=300s
+          kubectl -n argocd annotate application storemesh-product-service \
+            argocd.argoproj.io/refresh=hard --overwrite
+          for attempt in {1..60}; do
+            rendered_issuer="$(kubectl -n storemesh-product-service get deployment storemesh-product-service \
+              -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="JWT_ISSUER")].value}')"
+            if [ "${rendered_issuer}" = "storemesh-user-service" ]; then
+              break
+            fi
+            if [ "${attempt}" -eq 60 ]; then
+              echo "Timed out waiting for Argo CD to render Product Service issuer." >&2
+              kubectl -n storemesh-product-service get deployment storemesh-product-service -o yaml || true
+              exit 1
+            fi
+            sleep 5
+          done
+          kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
           trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
