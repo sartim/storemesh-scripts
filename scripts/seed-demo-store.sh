@@ -126,12 +126,20 @@ echo "Creating 24 demo orders for customer ${customer_id}..."
 for i in $(seq 1 24); do
   product_id="${product_ids[$(( (i - 1) % ${#product_ids[@]} ))]}"
   quantity=$(( (i % 3) + 1 ))
-  curl -fsS -o /dev/null -w "order-${i}: %{http_code}\n" \
+  response_file="$(mktemp)"
+  http_code="$(curl -sS -o "${response_file}" -w '%{http_code}' \
     -X POST "${bff_url}/api/v1/orders" \
     -H "Authorization: Bearer ${customer_token}" \
     -H "Idempotency-Key: storemesh-demo-${i}" \
     -H 'Content-Type: application/json' \
-    -d "$(jq -nc --arg customer "${customer_id}" --arg product "${product_id}" --argjson quantity "${quantity}" '{customerId:$customer,lines:[{productId:$product,quantity:$quantity}]}')"
+    -d "$(jq -nc --arg customer "${customer_id}" --arg product "${product_id}" --argjson quantity "${quantity}" '{customerId:$customer,lines:[{productId:$product,quantity:$quantity}]}')" || true)"
+  if [[ "${http_code}" =~ ^[45] ]]; then
+    echo "order-${i}: ${http_code} $(<"${response_file}")" >&2
+    rm -f "${response_file}"
+    exit 1
+  fi
+  echo "order-${i}: ${http_code}"
+  rm -f "${response_file}"
 done
 
 echo "Demo catalog and order history imported."
