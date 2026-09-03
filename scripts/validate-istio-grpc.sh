@@ -14,8 +14,19 @@ for application in "${applications[@]}"; do
 	kubectl get namespace "$namespace" >/dev/null
 	label="$(kubectl get namespace "$namespace" -o jsonpath='{.metadata.labels.istio-injection}')"
 	[[ "$label" == "enabled" ]] || { echo "${namespace}: istio-injection is not enabled" >&2; exit 1; }
-	deployment="$(kubectl get deployment -n "$namespace" -l "app.kubernetes.io/name=${application_name}" -o jsonpath='{.items[0].metadata.name}')"
-	[[ -n "$deployment" ]] || { echo "${namespace}: no deployment found" >&2; exit 1; }
+	deployment=""
+	for attempt in {1..60}; do
+		deployment_names="$(kubectl get deployment -n "$namespace" -l "app.kubernetes.io/name=${application_name}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
+		if [[ -n "$deployment_names" ]]; then
+			deployment="${deployment_names%%$'\n'*}"
+			break
+		fi
+		if [[ "$attempt" -eq 60 ]]; then
+			echo "${namespace}: no deployment found after waiting" >&2
+			exit 1
+		fi
+		sleep 5
+	done
   selector="$(kubectl get deployment "$deployment" -n "$namespace" -o jsonpath='{.spec.selector.matchLabels.app\.kubernetes\.io/name}')"
   [[ -n "$selector" ]] || { echo "${namespace}/${deployment}: application selector is missing" >&2; exit 1; }
   all_ready=false
