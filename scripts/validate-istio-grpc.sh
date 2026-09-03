@@ -16,9 +16,8 @@ for application in "${applications[@]}"; do
 	[[ "$label" == "enabled" ]] || { echo "${namespace}: istio-injection is not enabled" >&2; exit 1; }
 	deployment=""
 	for attempt in {1..60}; do
-		deployment_names="$(kubectl get deployment -n "$namespace" -l "app.kubernetes.io/name=${application_name}" -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}')"
-		if [[ -n "$deployment_names" ]]; then
-			deployment="${deployment_names%%$'\n'*}"
+		if kubectl get deployment "$application_name" -n "$namespace" >/dev/null 2>&1; then
+			deployment="$application_name"
 			break
 		fi
 		if [[ "$attempt" -eq 60 ]]; then
