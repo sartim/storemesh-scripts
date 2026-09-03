@@ -35,6 +35,11 @@ jobs:
         with:
           repository: sartim/storemesh-argocd-repo
           path: storemesh-argocd-repo
+      - name: Check out Product Service
+        uses: actions/checkout@v4
+        with:
+          repository: sartim/storemesh-product-service
+          path: storemesh-product-service
       - name: Install Kind
         shell: bash
         run: |
@@ -46,8 +51,12 @@ jobs:
             sudo mv kind /usr/local/bin/kind
           fi
           kind version
+      - name: Build Product Service diagnostic image
+        run: docker build --tag storemesh-product-service:ci storemesh-product-service
       - name: Create disposable cluster
         run: storemesh-scripts/scripts/create-kind-cluster.sh
+      - name: Load Product Service image into Kind
+        run: kind load docker-image storemesh-product-service:ci --name storemesh
       - name: Bootstrap local data services
         run: storemesh-scripts/scripts/bootstrap-local-data-services.sh
       - name: Install Argo CD and submit applications
@@ -89,7 +98,7 @@ jobs:
           # Apply the transitional issuer compatibility only to this
           # disposable Argo application. Patching the Application source keeps
           # Argo self-heal from reverting the value before traffic validation.
-          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"}]}}}}'
+          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
           kubectl -n argocd patch application storemesh-product-service \
             --type merge --patch "$product_issuer_patch"
           kubectl -n argocd annotate application storemesh-product-service \
