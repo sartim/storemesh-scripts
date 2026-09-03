@@ -173,10 +173,31 @@ done
 sleep 15
 kubectl apply --filename "${argocd_dir}/eck-logging-application.yaml"
 
-application_manifests=(
+platform_manifests=(
   kiali-application.yaml
   fluent-bit-application.yaml
   prometheus-stack-application.yaml
+)
+
+for manifest in "${platform_manifests[@]}"; do
+  kubectl apply --filename "${argocd_dir}/${manifest}"
+done
+
+# Service charts may include ServiceMonitor resources. Wait until the
+# Prometheus operator has installed its CRDs before submitting those charts;
+# otherwise Argo can reject an otherwise valid service sync during discovery.
+for attempt in {1..120}; do
+  if kubectl get crd servicemonitors.monitoring.coreos.com prometheuses.monitoring.coreos.com >/dev/null 2>&1; then
+    break
+  fi
+  if [ "${attempt}" -eq 120 ]; then
+    echo "Timed out waiting for Prometheus Operator CRDs." >&2
+    exit 1
+  fi
+  sleep 5
+done
+
+application_manifests=(
   tempo-application.yaml
   storemesh-user-service-application.yaml
   storemesh-product-service-application.yaml
