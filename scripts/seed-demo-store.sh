@@ -9,6 +9,9 @@ customer_email="${STOREMESH_CUSTOMER_EMAIL:-demo@storemesh.local}"
 customer_password="${STOREMESH_CUSTOMER_PASSWORD:-StoreMesh-demo-2026!}"
 admin_email="${STOREMESH_ADMIN_EMAIL:-admin@storemesh.local}"
 admin_password="${STOREMESH_ADMIN_PASSWORD:-StoreMesh-admin-2026!}"
+seed_inventory="${STOREMESH_SEED_INVENTORY:-false}"
+postgres_namespace="${STOREMESH_POSTGRES_NAMESPACE:-storemesh-user-service}"
+postgres_password="${STOREMESH_POSTGRES_PASSWORD:-storemesh-local-password}"
 
 command -v jq >/dev/null || { echo "jq is required." >&2; exit 1; }
 
@@ -92,6 +95,31 @@ customer_id="$(jq -r '.sub // empty' <<<"${token_payload}")"
 if [[ "${#product_ids[@]}" -eq 0 || -z "${customer_id}" ]]; then
   echo "Catalog or customer token is unavailable; no orders were created." >&2
   exit 1
+fi
+
+# Coordinated order creation reserves stock before it persists the order. The
+# demo fixture therefore needs inventory rows for the products it just
+# created. Keep this opt-in so the script can still seed a BFF backed local
+# environment without requiring kubectl or direct database access.
+if [[ "${seed_inventory}" == "true" ]]; then
+  command -v kubectl >/dev/null || { echo "kubectl is required when STOREMESH_SEED_INVENTORY=true." >&2; exit 1; }
+  product_values=""
+  for product_id in "${product_ids[@]}"; do
+    product_values+="'${product_id}',"
+  done
+  product_values="${product_values%,}"
+  echo "Seeding demo inventory (100 units per product)..."
+  kubectl -n "${postgres_namespace}" exec -i deployment/postgres -- \
+    env PGPASSWORD="${postgres_password}" psql -U storemesh -d storemesh \
+    -v ON_ERROR_STOP=1 <<SQL
+INSERT INTO inventory_stock (product_id, on_hand, reserved, updated_at)
+SELECT id, 100, 0, NOW()
+FROM products
+WHERE id IN (${product_values})
+ON CONFLICT (product_id) DO UPDATE
+SET on_hand = GREATEST(inventory_stock.on_hand, 100),
+    updated_at = NOW();
+SQL
 fi
 
 echo "Creating 24 demo orders for customer ${customer_id}..."

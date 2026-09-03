@@ -127,6 +127,9 @@ jobs:
           done
           export STOREMESH_BFF_URL=http://127.0.0.1:8080
           export STOREMESH_TRAFFIC_REQUESTS=20
+          export STOREMESH_SEED_INVENTORY=true
+          export STOREMESH_POSTGRES_NAMESPACE=storemesh-user-service
+          export STOREMESH_POSTGRES_PASSWORD=storemesh-local-password
           storemesh-scripts/scripts/seed-demo-store.sh
           storemesh-scripts/scripts/load-demo-traffic.sh
       - name: Validate observability resources
