@@ -78,6 +78,12 @@ platform_manifests=(
   istio-mesh-policy-application.yaml
 )
 
+# The gateway chart intentionally starts with image "auto" and relies on the
+# Istio injector to replace it with proxyv2. Label its namespace before the
+# Application is submitted so the first gateway pod is injected correctly.
+kubectl create namespace istio-ingress --dry-run=client -o yaml | kubectl apply -f -
+kubectl label namespace istio-ingress istio-injection=enabled --overwrite
+
 for manifest in "${platform_manifests[@]}"; do
   kubectl apply --filename "${argocd_dir}/${manifest}"
 done
