@@ -27,6 +27,13 @@ ECK-managed logging resources, then deletes the cluster. It runs weekly and can
 be started manually from the Actions tab. Use this workflow for repeatable
 platform validation so local Docker is only needed for interactive development.
 
+For application feature work, run the changed frontend, BFF, or service
+directly as a normal local development process and use the cluster only for
+dependencies that are not convenient to run locally. Use the port-forward
+helper for those dependencies, then reserve the GitHub Actions smoke workflow
+for deployment, Istio, Argo CD, and observability validation. Do not recreate
+the local cluster for ordinary application changes.
+
 ## Supply runtime credentials
 
 Create the namespace and secret before submitting the Argo CD application:
