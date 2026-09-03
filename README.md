@@ -34,6 +34,10 @@ helper for those dependencies, then reserve the GitHub Actions smoke workflow
 for deployment, Istio, Argo CD, and observability validation. Do not recreate
 the local cluster for ordinary application changes.
 
+For infrastructure changes, prefer GitHub Actions as the first validation and
+debugging environment. Use local Docker or Kubernetes only when reproducing a
+container or cluster-specific issue requires interactive investigation.
+
 ## Supply runtime credentials
 
 Create the namespace and secret before submitting the Argo CD application:
