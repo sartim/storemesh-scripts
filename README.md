@@ -80,6 +80,19 @@ bootstrap independent of the `bitnamisecure/kubectl` image.
 
 ## Run the local UI and dashboards
 
+## Validate the running local platform
+
+Use the read-only validator after changes or restarts. It checks nodes, core
+deployments, StoreMesh services, Flagsmith, Prometheus, Grafana, ECK-managed
+Elasticsearch/Kibana, and OOMKilled events. It does not delete, recreate, or
+modify the cluster:
+
+```sh
+./scripts/validate-local-platform.sh
+```
+
+Set `STOREMESH_KUBE_CONTEXT` when validating a different context.
+
 After the local cluster and applications are ready, keep the forwarding helper
 running in a terminal:
 
