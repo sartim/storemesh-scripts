@@ -79,6 +79,14 @@ jobs:
           # The User Service image is built by its main workflow. Pull the
           # latest main image for this disposable validation environment so the
           # opt-in demo-user seeding path is exercised.
+          demo_secret_patch="$(jq -nc \
+            --arg customer_email 'demo@storemesh.local' \
+            --arg customer_password 'StoreMesh-demo-2026!' \
+            --arg admin_email 'admin@storemesh.local' \
+            --arg admin_password 'StoreMesh-admin-2026!' \
+            '{stringData:{DEMO_CUSTOMER_EMAIL:$customer_email,DEMO_CUSTOMER_PASSWORD:$customer_password,DEMO_ADMIN_EMAIL:$admin_email,DEMO_ADMIN_PASSWORD:$admin_password}}')"
+          kubectl -n storemesh-user-service patch secret storemesh-user-service-secrets \
+            --type merge --patch "$demo_secret_patch"
           user_deployment="$(kubectl get deployment -n storemesh-user-service -l app.kubernetes.io/name=storemesh-user-service -o jsonpath='{.items[0].metadata.name}')"
           user_container="$(kubectl get deployment "${user_deployment}" -n storemesh-user-service -o jsonpath='{.spec.template.spec.containers[0].name}')"
           kubectl -n storemesh-user-service set image "deployment/${user_deployment}" \
