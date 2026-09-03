@@ -169,7 +169,7 @@ jobs:
           kubectl -n storemesh-user-service logs deployment/postgres --tail=100 || true
           kubectl -n storemesh-user-service exec deployment/postgres -- \
             env PGPASSWORD="${STOREMESH_POSTGRES_PASSWORD:-storemesh-local-password}" \
-            psql -U storemesh -d storemesh -c '\\dt' || true
+            psql -U storemesh -d storemesh -c "SELECT table_name FROM information_schema.tables WHERE table_schema='public' ORDER BY table_name" || true
           kubectl get events -A --sort-by=.lastTimestamp | tail -200 || true
       - name: Delete disposable cluster
         if: always()

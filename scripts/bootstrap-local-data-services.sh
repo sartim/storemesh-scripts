@@ -159,7 +159,7 @@ kubectl -n "${namespace}" wait --for=condition=Available deployment/redis --time
 # services. Apply their idempotent schemas here so functional smoke tests use
 # the same persistent path as a deployed environment instead of falling back
 # to an uninitialized database.
-kubectl -n "${namespace}" exec deployment/postgres -- \
+kubectl -n "${namespace}" exec -i deployment/postgres -- \
   env PGPASSWORD="${postgres_password}" psql -U storemesh -d storemesh \
   -v ON_ERROR_STOP=1 <<'SQL'
 CREATE TABLE IF NOT EXISTS products (
@@ -232,5 +232,9 @@ CREATE TABLE IF NOT EXISTS event_outbox (
 CREATE INDEX IF NOT EXISTS event_outbox_pending_idx
   ON event_outbox (occurred_at) WHERE published_at IS NULL;
 SQL
+
+kubectl -n "${namespace}" exec deployment/postgres -- \
+  env PGPASSWORD="${postgres_password}" psql -U storemesh -d storemesh \
+  -v ON_ERROR_STOP=1 -tAc "SELECT to_regclass('public.products')" | grep -qx products
 
 echo "Local PostgreSQL, Redis, and user-service credentials are ready."
