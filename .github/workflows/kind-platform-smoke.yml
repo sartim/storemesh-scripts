@@ -121,7 +121,7 @@ jobs:
           for attempt in {1..60}; do
             rendered_issuer="$(kubectl -n storemesh-product-service get deployment storemesh-product-service \
               -o jsonpath='{.spec.template.spec.containers[0].env[?(@.name=="JWT_ISSUER")].value}')"
-            if [ "${rendered_issuer}" = "storemesh-user-service" ]; then
+            if [ "${rendered_issuer}" = "storemesh-product-service" ]; then
               break
             fi
             if [ "${attempt}" -eq 60 ]; then
