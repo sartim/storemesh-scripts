@@ -40,6 +40,11 @@ jobs:
         with:
           repository: sartim/storemesh-product-service
           path: storemesh-product-service
+      - name: Check out Order Service
+        uses: actions/checkout@v4
+        with:
+          repository: sartim/storemesh-order-service
+          path: storemesh-order-service
       - name: Install Kind
         shell: bash
         run: |
@@ -53,10 +58,14 @@ jobs:
           kind version
       - name: Build Product Service diagnostic image
         run: docker build --tag storemesh-product-service:ci storemesh-product-service
+      - name: Build Order Service diagnostic image
+        run: docker build --tag storemesh-order-service:ci storemesh-order-service
       - name: Create disposable cluster
         run: storemesh-scripts/scripts/create-kind-cluster.sh
       - name: Load Product Service image into Kind
         run: kind load docker-image storemesh-product-service:ci --name storemesh
+      - name: Load Order Service image into Kind
+        run: kind load docker-image storemesh-order-service:ci --name storemesh
       - name: Bootstrap local data services
         run: storemesh-scripts/scripts/bootstrap-local-data-services.sh
       - name: Install Argo CD and submit applications
@@ -101,7 +110,12 @@ jobs:
           product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"},{"name":"image.repository","value":"storemesh-product-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
           kubectl -n argocd patch application storemesh-product-service \
             --type merge --patch "$product_issuer_patch"
+          order_image_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"image.repository","value":"storemesh-order-service"},{"name":"image.tag","value":"ci"},{"name":"image.pullPolicy","value":"IfNotPresent"}]}}}}'
+          kubectl -n argocd patch application storemesh-order-service \
+            --type merge --patch "$order_image_patch"
           kubectl -n argocd annotate application storemesh-product-service \
+            argocd.argoproj.io/refresh=hard --overwrite
+          kubectl -n argocd annotate application storemesh-order-service \
             argocd.argoproj.io/refresh=hard --overwrite
           for attempt in {1..60}; do
             rendered_issuer="$(kubectl -n storemesh-product-service get deployment storemesh-product-service \
@@ -117,6 +131,7 @@ jobs:
             sleep 5
           done
           kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
+          kubectl -n storemesh-order-service rollout status deployment/storemesh-order-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
           trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
