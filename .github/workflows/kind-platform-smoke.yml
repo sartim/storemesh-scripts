@@ -91,7 +91,10 @@ jobs:
           # smoke test. Disable that interceptor only in this disposable CI
           # cluster so catalog/order traffic can be exercised independently;
           # shared environments must keep Product JWT validation enabled.
-          kubectl -n storemesh-product-service set env deployment/storemesh-product-service JWT_SECRET-
+          product_secret_patch="$(jq -nc '{stringData:{JWT_SECRET:""}}')"
+          kubectl -n storemesh-product-service patch secret storemesh-product-service-secrets \
+            --type merge --patch "$product_secret_patch"
+          kubectl -n storemesh-product-service rollout restart deployment/storemesh-product-service
           kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
