@@ -86,15 +86,14 @@ jobs:
             '{stringData:{DEMO_CUSTOMER_EMAIL:$customer_email,DEMO_CUSTOMER_PASSWORD:$customer_password,DEMO_ADMIN_EMAIL:$admin_email,DEMO_ADMIN_PASSWORD:$admin_password}}')"
           kubectl -n storemesh-user-service patch secret storemesh-user-service-secrets \
             --type merge --patch "$demo_secret_patch"
-          # The bootstrap uses the same transitional signing secret for the
-          # user and product services. Product normally expects its own issuer,
-          # so align only the disposable CI deployment with the seeded user
-          # token that the BFF forwards during this smoke test. Authentication
-          # remains enabled; shared environments keep their normal values.
-          kubectl -n storemesh-product-service set env deployment/storemesh-product-service \
-            JWT_ISSUER=storemesh-user-service JWT_AUDIENCE=storemesh-platform
-          kubectl -n storemesh-product-service rollout restart deployment/storemesh-product-service
-          kubectl -n storemesh-product-service rollout status deployment/storemesh-product-service --timeout=300s
+          # Apply the transitional issuer compatibility only to this
+          # disposable Argo application. Patching the Application source keeps
+          # Argo self-heal from reverting the value before traffic validation.
+          product_issuer_patch='{"spec":{"source":{"helm":{"parameters":[{"name":"config.jwtIssuer","value":"storemesh-user-service"},{"name":"config.jwtAudience","value":"storemesh-platform"}]}}}}'
+          kubectl -n argocd patch application storemesh-product-service \
+            --type merge --patch "$product_issuer_patch"
+          kubectl -n argocd wait --for=jsonpath='{.status.sync.status}'=Synced \
+            application/storemesh-product-service --timeout=300s
           kubectl -n storemesh-bff port-forward svc/storemesh-bff 8080:8080 > /tmp/storemesh-bff-port-forward.log 2>&1 &
           bff_pid=$!
           trap 'kill "${bff_pid}" 2>/dev/null || true' EXIT
