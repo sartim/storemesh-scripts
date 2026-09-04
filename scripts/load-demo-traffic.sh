@@ -30,6 +30,36 @@ admin_auth=( -H "Authorization: Bearer ${admin_token}" )
 ok=0
 failed=0
 
+graphql() {
+  local query="$1"
+  curl -fsS "${bff_url}/api/v1/graphql" \
+    -H 'Content-Type: application/json' \
+    -H "Authorization: Bearer ${customer_token}" \
+    -d "$(jq -nc --arg query "${query}" '{query:$query}')"
+}
+
+echo "Validating composed GraphQL catalog, cart, and idempotent checkout..."
+graphql_response="$(graphql '{ products(pageSize: 100) { products { id name priceMinor currency } } }')"
+echo "GraphQL catalog: $(jq -r '.data.products.products | length' <<<"${graphql_response}") products"
+jq -e '((.errors // []) | length) == 0 and (.data.products.products | length) > 0' <<<"${graphql_response}" >/dev/null
+product_id="$(jq -er '.data.products.products[0].id' <<<"${graphql_response}")"
+
+cart_response="$(graphql "mutation { updateCart(lines: [{ productId: \"${product_id}\", quantity: 2 }]) { lines { productId quantity } } }")"
+jq -e --arg product_id "${product_id}" '((.errors // []) | length) == 0 and .data.updateCart.lines[0].productId == $product_id and .data.updateCart.lines[0].quantity == 2' <<<"${cart_response}" >/dev/null
+graphql_cart="$(graphql '{ cart { lines { productId quantity } } }')"
+jq -e --arg product_id "${product_id}" '((.errors // []) | length) == 0 and .data.cart.lines[0].productId == $product_id and .data.cart.lines[0].quantity == 2' <<<"${graphql_cart}" >/dev/null
+
+idempotency_key="storemesh-smoke-${GITHUB_RUN_ID:-local}"
+order_query="mutation { createOrder(lines: [{ productId: \"${product_id}\", quantity: 1 }], idempotencyKey: \"${idempotency_key}\") { id status totalMinor currency } }"
+first_order="$(graphql "${order_query}")"
+second_order="$(graphql "${order_query}")"
+jq -e '((.errors // []) | length) == 0 and (.data.createOrder.id | length) > 0' <<<"${first_order}" >/dev/null
+first_order_id="$(jq -er '.data.createOrder.id' <<<"${first_order}")"
+second_order_id="$(jq -er '.data.createOrder.id' <<<"${second_order}")"
+test "${first_order_id}" = "${second_order_id}"
+graphql "mutation { clearCart { lines { productId quantity } } }" >/dev/null
+echo "GraphQL checkout idempotency: ${first_order_id} returned for both attempts"
+
 request() {
   local method="$1" url="$2"; shift 2
   local status
