@@ -152,7 +152,7 @@ jobs:
           export STOREMESH_POSTGRES_NAMESPACE=storemesh-user-service
           export STOREMESH_POSTGRES_PASSWORD=storemesh-local-password
           storemesh-scripts/scripts/seed-demo-store.sh
-          storemesh-scripts/scripts/load-demo-traffic.sh
+          bash storemesh-scripts/scripts/load-demo-traffic.sh
       - name: Validate observability resources
         shell: bash
         run: |
