@@ -4,6 +4,7 @@ set -euo pipefail
 
 BFF_URL="${BFF_URL:-http://localhost:8080}"
 FRONTEND_URL="${FRONTEND_URL:-http://localhost:3000}"
+USER_SERVICE_URL="${USER_SERVICE_URL:-http://localhost:8090}"
 ACCESS_TOKEN="${ACCESS_TOKEN:-}"
 
 check_url() {
@@ -20,6 +21,7 @@ check_url() {
 }
 
 check_url "BFF health" "$BFF_URL/healthz"
+check_url "User Service health" "$USER_SERVICE_URL/healthz"
 check_url "BFF product API" "$BFF_URL/api/v1/products"
 check_url "Next.js frontend" "$FRONTEND_URL/"
 

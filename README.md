@@ -41,11 +41,11 @@ After starting the domain services, BFF, and frontend as local processes, run:
 ./scripts/validate-local-app.sh
 ```
 
-The check calls the BFF health and product REST endpoints and the Next.js
-frontend directly. Set `ACCESS_TOKEN` to additionally validate the authenticated
-BFF GraphQL products query. Override `BFF_URL` or `FRONTEND_URL` when using
-different local ports. This script never creates a cluster, starts containers,
-or launches application processes.
+The check calls User Service and BFF health endpoints, the BFF product REST
+endpoint, and the Next.js frontend directly. Set `ACCESS_TOKEN` to additionally
+validate the authenticated BFF GraphQL products query. Override `BFF_URL`,
+`USER_SERVICE_URL`, or `FRONTEND_URL` when using different local ports. This
+script never creates a cluster, starts containers, or launches processes.
 
 For infrastructure changes, prefer GitHub Actions as the first validation and
 debugging environment. Use local Docker or Kubernetes only when reproducing a
