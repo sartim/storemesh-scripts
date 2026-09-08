@@ -33,6 +33,20 @@ the port-forward helper for routine application development. Reserve the
 GitHub Actions smoke workflow for deployment, Istio, Argo CD, and observability
 validation. Do not recreate the local cluster for ordinary application changes.
 
+## Validate independently running local applications
+
+After starting the domain services, BFF, and frontend as local processes, run:
+
+```sh
+./scripts/validate-local-app.sh
+```
+
+The check calls the BFF health and product REST endpoints and the Next.js
+frontend directly. Set `ACCESS_TOKEN` to additionally validate the authenticated
+BFF GraphQL products query. Override `BFF_URL` or `FRONTEND_URL` when using
+different local ports. This script never creates a cluster, starts containers,
+or launches application processes.
+
 For infrastructure changes, prefer GitHub Actions as the first validation and
 debugging environment. Use local Docker or Kubernetes only when reproducing a
 container or cluster-specific issue requires interactive investigation.
