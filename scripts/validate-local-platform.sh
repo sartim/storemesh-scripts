@@ -60,6 +60,7 @@ unready_pods=""
 for attempt in {1..30}; do
   unready_pods="$(kubectl "${kubectl_args[@]}" get pods -A -o jsonpath='{range .items[?(@.status.phase=="Running")]}{range .status.conditions[?(@.type=="Ready")]}{.status}{" "}{end}{.metadata.namespace}{"/"}{.metadata.name}{"\n"}{end}' | awk '$1 != "True" {print $2}')"
   [[ -z "${unready_pods}" ]] && break
+  [[ "${attempt}" -eq 30 ]] && break
   sleep 2
 done
 if [[ -n "${unready_pods}" ]]; then
