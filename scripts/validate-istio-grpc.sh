@@ -7,6 +7,7 @@ applications=(
   storemesh-inventory-service/storemesh-inventory-service
   storemesh-order-service/storemesh-order-service
   storemesh-bff/storemesh-bff
+	storemesh-frontend/storemesh-frontend
 )
 for application in "${applications[@]}"; do
 	namespace="${application%%/*}"
@@ -57,4 +58,33 @@ for application in "${applications[@]}"; do
   done
   echo "${namespace}: enrolled and ready"
 done
-echo "Istio enrollment is healthy. Validate gRPC calls and telemetry before applying STRICT PeerAuthentication."
+
+strict_namespaces=(
+  storemesh-user-service
+  storemesh-product-service
+  storemesh-inventory-service
+  storemesh-order-service
+  storemesh-bff
+  storemesh-frontend
+)
+for namespace in "${strict_namespaces[@]}"; do
+  mode="$(kubectl get peerauthentication storemesh-mtls -n "$namespace" -o jsonpath='{.spec.mtls.mode}')"
+  [[ "$mode" == "STRICT" ]] || {
+    echo "${namespace}: expected STRICT PeerAuthentication, got ${mode:-missing}" >&2
+    exit 1
+  }
+done
+
+authorization_namespaces=(
+  storemesh-user-service
+  storemesh-product-service
+  storemesh-inventory-service
+  storemesh-order-service
+  storemesh-bff
+  storemesh-frontend
+)
+for namespace in "${authorization_namespaces[@]}"; do
+  kubectl get authorizationpolicy -n "$namespace" >/dev/null
+done
+
+echo "Istio enrollment, STRICT mTLS, and StoreMesh authorization policies are healthy."
