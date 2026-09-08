@@ -26,12 +26,12 @@ check_url "BFF product API" "$BFF_URL/api/v1/products"
 check_url "Next.js frontend" "$FRONTEND_URL/"
 
 if [[ -n "$ACCESS_TOKEN" ]]; then
-  graphql_body='{"query":"{ products { id name priceMinor currency } }"}'
+  graphql_body='{"query":"{ products { products { id name priceMinor currency } } }"}'
   curl --fail-with-body --silent --show-error \
     -H "Authorization: Bearer $ACCESS_TOKEN" \
     -H 'Content-Type: application/json' \
     --data "$graphql_body" \
-    "$BFF_URL/api/v1/graphql" >/dev/null
+    "$BFF_URL/api/v1/graphql"
   printf 'ok: authenticated BFF GraphQL products\n'
 else
   printf 'skipped: authenticated GraphQL check (set ACCESS_TOKEN to enable)\n'
