@@ -43,7 +43,11 @@ After starting the domain services, BFF, and frontend as local processes, run:
 
 The check calls User Service and BFF health endpoints, the BFF product REST
 endpoint, and the Next.js frontend directly. Set `ACCESS_TOKEN` to additionally
-validate the authenticated BFF GraphQL products query. Override `BFF_URL`,
+validate the authenticated BFF GraphQL products query. Set
+`RUN_COMMERCE_FLOW=1` with the token to exercise the network-backed mobile/web
+contract end to end: read and update the customer cart, create an order with a
+unique idempotency key, and clear the cart. The flow uses the first active
+product returned by the BFF and is intended for development data only. Override `BFF_URL`,
 `USER_SERVICE_URL`, or `FRONTEND_URL` when using different local ports. This
 script never creates a cluster, starts containers, or launches processes.
 
