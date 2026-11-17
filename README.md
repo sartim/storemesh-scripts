@@ -156,6 +156,24 @@ bash ./scripts/seed-demo-store.sh
 The script skips duplicate product SKUs and uses idempotency keys for orders.
 It writes through the BFF, so configured Product and Order persistence is used.
 
+## Validate PostgreSQL restore mechanics
+
+Use `scripts/validate-postgres-restore.sh` with a source and isolated restore
+database to rehearse a custom-format backup and restore. The command never
+prints either connection string:
+
+```sh
+STOREMESH_SOURCE_DATABASE_URL='postgres://...' \
+STOREMESH_RESTORE_DATABASE_URL='postgres://...' \
+STOREMESH_RESTORE_CHECK_SQL='SELECT 1;' \
+./scripts/validate-postgres-restore.sh
+```
+
+Pull requests and `main` also run a disposable two-database rehearsal through
+GitHub Actions. This proves the tooling path only; production backup storage,
+encryption, credentials, retention, and measured RPO/RTO remain environment
+operator responsibilities.
+
 ## Optional ngrok access
 
 Use ngrok when a physical mobile device or a remote demo needs to reach the

@@ -1,0 +1,52 @@
+name: PostgreSQL restore rehearsal
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      source-db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: storemesh
+          POSTGRES_PASSWORD: source-password
+          POSTGRES_DB: source
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U storemesh -d source"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      restore-db:
+        image: postgres:16
+        env:
+          POSTGRES_USER: storemesh
+          POSTGRES_PASSWORD: restore-password
+          POSTGRES_DB: restore
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U storemesh -d restore"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+      - name: Seed source database
+        env:
+          PGPASSWORD: source-password
+        run: |
+          psql --host=127.0.0.1 --port=5432 --username=storemesh --dbname=source \
+            --command='CREATE TABLE restore_fixture (id integer PRIMARY KEY, value text NOT NULL); INSERT INTO restore_fixture VALUES (1, ''rehearsed'');'
+      - name: Run backup and restore rehearsal
+        env:
+          STOREMESH_SOURCE_DATABASE_URL: postgres://storemesh:source-password@127.0.0.1:5432/source
+          STOREMESH_RESTORE_DATABASE_URL: postgres://storemesh:restore-password@127.0.0.1:5433/restore
+          STOREMESH_RESTORE_CHECK_SQL: SELECT value FROM restore_fixture WHERE id = 1;
+        run: ./scripts/validate-postgres-restore.sh
