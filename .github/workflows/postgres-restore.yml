@@ -43,7 +43,7 @@ jobs:
           PGPASSWORD: source-password
         run: |
           psql --host=127.0.0.1 --port=5432 --username=storemesh --dbname=source \
-            --command='CREATE TABLE restore_fixture (id integer PRIMARY KEY, value text NOT NULL); INSERT INTO restore_fixture VALUES (1, ''rehearsed'');'
+            --command="CREATE TABLE restore_fixture (id integer PRIMARY KEY, value text NOT NULL); INSERT INTO restore_fixture VALUES (1, 'rehearsed');"
       - name: Run backup and restore rehearsal
         env:
           STOREMESH_SOURCE_DATABASE_URL: postgres://storemesh:source-password@127.0.0.1:5432/source
