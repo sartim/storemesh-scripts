@@ -39,9 +39,20 @@ for attempt in {1..30}; do
 done
 
 targets="$(curl --fail --silent "http://127.0.0.1:${port}/api/v1/targets?state=active")"
-active_count="$(jq '[.data.activeTargets[] | select((.labels.namespace // "") | startswith("storemesh-"))] | length' <<<"${targets}")"
+active_count="$(jq '[.data.activeTargets[] | select(.health == "up") | select((.labels.namespace // "") | startswith("storemesh-"))] | length' <<<"${targets}")"
+missing_namespaces=""
+for service in "${services[@]}"; do
+  namespace="storemesh-${service}"
+  if ! jq -e --arg namespace "${namespace}" \
+    '[.data.activeTargets[] | select(.health == "up" and .labels.namespace == $namespace)] | length > 0' \
+    <<<"${targets}" >/dev/null; then
+    missing_namespaces+="${namespace}\n"
+  fi
+done
 if [[ "${active_count}" -lt "${#services[@]}" ]]; then
-  echo "Expected at least ${#services[@]} active StoreMesh scrape targets; found ${active_count}." >&2
+  echo "Expected one healthy StoreMesh target per domain service; found ${active_count}." >&2
+  echo "Missing healthy namespaces:" >&2
+  printf '%b' "${missing_namespaces}" >&2
   jq '.data.activeTargets | map({job: .labels.job, namespace: .labels.namespace, health: .health, lastError: .lastError})' <<<"${targets}" >&2
   exit 1
 fi
