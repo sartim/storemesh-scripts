@@ -121,6 +121,15 @@ modify the cluster:
 
 Set `STOREMESH_KUBE_CONTEXT` when validating a different context.
 
+The disposable Kind smoke also validates Prometheus discovery with
+`scripts/validate-prometheus-discovery.sh`. It checks the User, Product,
+Inventory, and Order ServiceMonitor resources and queries Prometheus for active
+StoreMesh targets. Run it after Prometheus is ready when debugging a cluster:
+
+```sh
+./scripts/validate-prometheus-discovery.sh
+```
+
 After the local cluster and applications are ready, keep the forwarding helper
 running in a terminal:
 

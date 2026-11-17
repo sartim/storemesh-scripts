@@ -175,6 +175,8 @@ jobs:
             sleep 5
           done
           kubectl -n storemesh-logging wait --for=condition=Available deployment --all --timeout=600s
+      - name: Validate Prometheus ServiceMonitor discovery
+        run: storemesh-scripts/scripts/validate-prometheus-discovery.sh
       - name: Run non-destructive platform validation
         run: storemesh-scripts/scripts/validate-local-platform.sh
       - name: Collect diagnostics
