@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 10
     services:
       source-db:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: storemesh
           POSTGRES_PASSWORD: source-password
@@ -25,7 +25,7 @@ jobs:
           --health-cmd "pg_isready -U storemesh -d source"
           --health-interval 5s --health-timeout 5s --health-retries 20
       restore-db:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: storemesh
           POSTGRES_PASSWORD: restore-password
