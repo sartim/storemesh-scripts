@@ -16,7 +16,8 @@ jobs:
   platform-smoke:
     name: Disposable Kind platform validation
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    # Leave room after bounded steps for the diagnostics and cluster cleanup.
+    timeout-minutes: 50
     env:
       STOREMESH_PLATFORM_DIR: ${{ github.workspace }}
       KUBECONFIG: ${{ github.workspace }}/kind-kubeconfig
@@ -57,20 +58,28 @@ jobs:
           fi
           kind version
       - name: Build Product Service diagnostic image
-        run: docker build --tag storemesh-product-service:ci storemesh-product-service
+        timeout-minutes: 8
+        run: docker build --progress=plain --tag storemesh-product-service:ci storemesh-product-service
       - name: Build Order Service diagnostic image
-        run: docker build --tag storemesh-order-service:ci storemesh-order-service
+        timeout-minutes: 8
+        run: docker build --progress=plain --tag storemesh-order-service:ci storemesh-order-service
       - name: Create disposable cluster
+        timeout-minutes: 5
         run: storemesh-scripts/scripts/create-kind-cluster.sh
       - name: Load Product Service image into Kind
+        timeout-minutes: 3
         run: kind load docker-image storemesh-product-service:ci --name storemesh
       - name: Load Order Service image into Kind
+        timeout-minutes: 3
         run: kind load docker-image storemesh-order-service:ci --name storemesh
       - name: Bootstrap local data services
+        timeout-minutes: 8
         run: storemesh-scripts/scripts/bootstrap-local-data-services.sh
       - name: Install Argo CD and submit applications
+        timeout-minutes: 10
         run: storemesh-scripts/scripts/bootstrap-argocd.sh
       - name: Wait for StoreMesh workloads
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
@@ -89,8 +98,10 @@ jobs:
             kubectl -n "${namespace}" wait --for=condition=Available deployment --all --timeout=300s
           done
       - name: Validate Istio gRPC enrollment
+        timeout-minutes: 5
         run: storemesh-scripts/scripts/validate-istio-grpc.sh
       - name: Validate functional observability traffic
+        timeout-minutes: 12
         shell: bash
         run: |
           set -euo pipefail
@@ -154,6 +165,7 @@ jobs:
           storemesh-scripts/scripts/seed-demo-store.sh
           bash storemesh-scripts/scripts/load-demo-traffic.sh
       - name: Validate observability resources
+        timeout-minutes: 15
         shell: bash
         run: |
           set -euo pipefail
@@ -176,21 +188,34 @@ jobs:
           done
           kubectl -n storemesh-logging wait --for=condition=Available deployment --all --timeout=600s
       - name: Validate Prometheus ServiceMonitor discovery
+        timeout-minutes: 5
         run: storemesh-scripts/scripts/validate-prometheus-discovery.sh
       - name: Run non-destructive platform validation
+        timeout-minutes: 8
         run: storemesh-scripts/scripts/validate-local-platform.sh
       - name: Collect diagnostics
         if: always()
         shell: bash
         run: |
+          echo '--- runner and container runtime ---'
+          docker version || true
+          docker system df || true
+          echo '--- cluster inventory ---'
+          kind get clusters || true
+          kubectl cluster-info --request-timeout=10s || true
           kubectl get nodes -o wide || true
           kubectl get applications -n argocd -o wide || true
           kubectl get pods -A -o wide || true
+          kubectl get pvc -A -o wide || true
+          kubectl describe pods -A || true
           kubectl -n storemesh-logging get elasticsearch storemesh-logs -o yaml || true
           kubectl -n argocd get application eck-logging -o yaml || true
           kubectl -n storemesh-logging get kibana storemesh-logs -o yaml || true
           kubectl -n storemesh-logging logs -l common.k8s.elastic.co/type=kibana --all-containers --tail=200 || true
           kubectl -n storemesh-product-service logs deployment/storemesh-product-service -c product-service --tail=200 || true
+          kubectl -n storemesh-product-service logs deployment/storemesh-product-service -c product-service --previous --tail=100 || true
+          kubectl -n storemesh-order-service logs deployment/storemesh-order-service --all-containers --tail=200 || true
+          kubectl -n storemesh-order-service logs deployment/storemesh-order-service --all-containers --previous --tail=100 || true
           kubectl -n storemesh-bff logs deployment/storemesh-bff -c bff --tail=200 || true
           kubectl -n storemesh-user-service logs deployment/postgres --tail=100 || true
           kubectl -n storemesh-user-service exec deployment/postgres -- \
@@ -199,4 +224,5 @@ jobs:
           kubectl get events -A --sort-by=.lastTimestamp | tail -200 || true
       - name: Delete disposable cluster
         if: always()
+        timeout-minutes: 3
         run: kind delete cluster --name storemesh
